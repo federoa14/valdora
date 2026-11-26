@@ -1,0 +1,11 @@
+{
+  "name": "valdora",
+  "version": "0.7.0",
+  "description": "Simulador político por turnos inspirado en la política argentina.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/simular.js",
+    "start": "npx --yes serve ."
+  },
+  "license": "MIT"
+}
