@@ -130,7 +130,7 @@ function efectoEspecial(fx) {
     case "default": {
       S.enDefault = true;
       if (S.fmi) S.fmi.activo = false;
-      return { msg: "Valdora entra en cesación de pagos." , tipo: "malo" };
+      return { msg: "La Argentina entra en cesación de pagos." , tipo: "malo" };
     }
     case "ley": {
       const L = LEYES_DILEMA[a];
@@ -165,7 +165,7 @@ function efectoEspecial(fx) {
       aplicarEfectos({ reservas: -1500 }); moverActor("fmi", -10);
       return { msg: "El Fondo niega el waiver y suspende el desembolso.", tipo: "malo" };
     }
-    case "finFMI": { if (S.fmi) S.fmi.activo = false; return { msg: "Valdora da por terminado el programa con el Fondo.", tipo: "aviso" }; }
+    case "finFMI": { if (S.fmi) S.fmi.activo = false; return { msg: "La Argentina da por terminado el programa con el Fondo.", tipo: "aviso" }; }
     case "dnuTributario": {
       aplicarEfectos({ legitimidad: -4, imagen: 2 }); moverActor("cgt", 10); moverActor("corte", -12);
       S.diferidos.push({ t: S.trimestre + 1, texto: "La Justicia declara inconstitucional el decreto sobre Ganancias: los DNU no pueden tratar materia tributaria (art. 99 inc. 3).", ind: { legitimidad: -3, imagen: -2 } });

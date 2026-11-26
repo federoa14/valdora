@@ -16,7 +16,7 @@ let S = null; // estado global de la partida
 const SEMANAS_CAMPANA = 12;
 const SEMANA_INTERNA = 4;
 const MESES_CAMPANA = SEMANAS_CAMPANA / 2; // cada turno de campaña es un mes (dos semanas del modelo)
-const AP_MES = 10;
+const AP_MES = 6;
 function mesDeSemana(s) { return Math.ceil(s / 2); }
 const TRIMESTRES_MANDATO = 16;
 const MESES_MANDATO = 48;
@@ -547,7 +547,7 @@ function finElecciones(ganadorId, texto) {
     log(S.motivoDerrota, "malo");
     return { titulo: "Resultado electoral", texto: S.motivoDerrota, tipo: "malo" };
   }
-  log(texto + " ¡Sos presidente electo de Valdora!", "bueno");
+  log(texto + " ¡Sos presidente electo de la Nación!", "bueno");
   iniciarGobierno();
   return { titulo: "¡Ganaste la presidencia!", texto: texto + " Asumís el 10 de diciembre. Ahora empieza lo difícil.", tipo: "bueno" };
 }
@@ -1009,7 +1009,7 @@ function resolverDecision(tipo, opcion) {
   } else if (tipo === "saqueos") {
     if (opcion === "reprimir") { I.tension -= 4; I.legitimidad -= 10; I.imagen -= 4; msg = "Ordenaste reprimir. Hay muertos y la oposición pide juicio político."; }
     else if (opcion === "asistencia") { I.tension -= 10; I.deficit += 0.5; msg = "Lanzaste un plan de emergencia alimentaria con los intendentes y las parroquias."; }
-    else { I.tension -= 6; I.legitimidad -= 3; I.imagen -= 1; msg = "Declaraste el estado de sitio en Gran Ribera (art. 23)."; }
+    else { I.tension -= 6; I.legitimidad -= 3; I.imagen -= 1; msg = "Declaraste el estado de sitio en el conurbano bonaerense (art. 23)."; }
   } else if (tipo === "este") {
     if (opcion === "aceptar") { I.reservas += 4000; I.crecimiento += 0.4; S.alineamiento = "este"; I.imagen -= 1; msg = "Aceptaste la inversión. La Federación del Norte expresa \"preocupación\"."; }
     else { msg = "Rechazaste la oferta. La Federación del Norte lo celebra."; }
@@ -1072,9 +1072,10 @@ function puntajeFinal() {
 function guardar() {
   try { localStorage.setItem("valdora_partida", JSON.stringify({ S, NUEVO: PARTIDOS.NUEVO || null })); return true; } catch (e) { return false; }
 }
+let _rawCarga = null; // si está definido, cargar() lee de acá (ranuras, autoguardado, archivo)
 function cargar() {
   try {
-    const raw = localStorage.getItem("valdora_partida"); if (!raw) return false;
+    const raw = _rawCarga || localStorage.getItem("valdora_partida"); if (!raw) return false;
     const d = JSON.parse(raw); S = d.S; if (d.NUEVO) PARTIDOS.NUEVO = d.NUEVO;
     S.jugador = S.candidatos.find(c => c.esJugador);
     (S.medidasDinamicas || []).forEach(m => { if (!MEDIDAS.find(x => x.id === m.id)) MEDIDAS.push(m); });

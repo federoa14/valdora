@@ -30,7 +30,7 @@ renderEstado = function () {
     <span class="pill">Caja <b>${Math.round(S.ind.caja)}</b></span>
     <span class="pill">Imagen <b>${Math.round(S.ind.imagen)}%</b></span>
     <span class="pill">Tensión <b>${Math.round(S.ind.tension)}</b></span>
-    <span class="pill">Gestión del mes <b>${S.medidasEsteTrimestre ? "usada" : "disponible"}</b></span>`;
+    <span class="pill" title="Casilleros de agenda del mes">Agenda <b>${agendaDisponible()}</b>/${agendaMax()}</span>`;
 };
 
 const _renderJuegoEsc = renderJuego;
@@ -56,7 +56,7 @@ renderFin = function (completo) {
     <table class="tally"><tr><th>Indicador</th><th>Al asumir</th><th>Al irte</th></tr>
     ${filas.map(([n, k, u]) => `<tr><td>${n}</td><td>${fmt(H[k], 1)}${u}</td><td>${fmt(I[k], 1)}${u}</td></tr>`).join("")}</table>
     <div class="row" style="justify-content:center;margin-top:16px"><button id="bOtra">Jugar otra vez</button></div></div>`;
-  try { localStorage.removeItem("valdora_partida"); } catch (e) {}
+  borrarPartidaEnCurso();
   $("#bOtra").onclick = () => { UI.cfg = null; renderCrear(); };
 };
 
@@ -65,7 +65,7 @@ function renderGobiernoLocal() {
   const I = S.ind, yo = S.jugador, gob = S.cfg.objetivo === "gobernador";
   UI.tabLoc = UI.tabLoc || "despacho";
   const pend = S.expedientesLocal.filter(e => !e.resuelto).length;
-  const tabs = [["despacho", `Despacho${pend ? " (" + pend + ")" : ""}`], ["resumen", "Indicadores"], ["presupuesto", "Presupuesto"], ["leg", gob ? "Legislatura" : "Concejo Deliberante"], ["leyes", gob ? "Leyes" : "Ordenanzas"], ["nacion", gob ? "Relación con la Nación" : "Provincia y Nación"]];
+  const tabs = [["despacho", `Despacho${pend ? " (" + pend + ")" : ""}`], ["resumen", "Estadísticas"], ["presupuesto", "Presupuesto"], ["leg", gob ? "Legislatura" : "Concejo Deliberante"], ["leyes", gob ? "Leyes" : "Ordenanzas"], ["boletin", "Boletín Oficial"], ["nacion", gob ? "Relación con la Nación" : "Provincia y Nación"]];
   const P = S.presidente;
   let cuerpo = "";
   if (UI.tabLoc === "despacho") {
@@ -81,11 +81,12 @@ function renderGobiernoLocal() {
     const inds = [["caja", "Caja (fondos disponibles)", Math.round(I.caja), false], ["desempleo", "Desempleo", fmt(I.desempleo) + "%", true], ["pobreza", "Pobreza", fmt(I.pobreza) + "%", true], ["inseguridad", "Inseguridad", Math.round(I.inseguridad) + "/100", true], ["servicios", "Calidad de servicios", Math.round(I.servicios) + "/100", false], ["deuda", "Deuda", Math.round(I.deuda), true], ["imagen", "Imagen", Math.round(I.imagen) + "%", false], ["legitimidad", "Legitimidad", Math.round(I.legitimidad) + "/100", false]];
     const nivel = I.tension < 30 ? "Calma" : I.tension < 50 ? "Malestar" : I.tension < 70 ? "Conflicto" : I.tension < 85 ? "Crisis" : "Estallido";
     cuerpo = `<div class="indicadores">${inds.map(([k, l, v, malo]) => `<div class="ind"><div class="l">${l}</div><div class="n">${v}</div>${deltaInd(k, malo)}</div>`).join("")}</div>
+      ${htmlEstadisticas(FILAS_EST_LOCAL, gob ? "Dirección Provincial de Estadística (ficticia)" : "Dirección Municipal de Estadística (ficticia)")}
       <h3 style="margin-top:14px">Tensión social: ${Math.round(I.tension)} (${nivel})</h3>
       <div class="tension"><div class="marca-t" style="left:calc(${I.tension}% - 2px)"></div></div>
       <p class="small muted" style="margin-top:8px">Inflación nacional: ${fmt(S.inflNacional)}% mensual (no la controlás, pero te licúa la coparticipación). ${S.sueldosImpagos ? `Meses con sueldos atrasados: ${Math.round(S.sueldosImpagos * 3)}.` : ""}${S.adhesiones.length ? ` Adhesiones a leyes nacionales: ${S.adhesiones.length}.` : ""}${S.flagsLocal.reeleccion ? " Tenés reelección habilitada." : ""}</p>
       <h3 style="margin-top:14px">Evolución</h3>
-      ${grafico([{ k: "imagen", n: "Imagen", c: "#1f5fa8", min: 0, max: 100 }, { k: "tension", n: "Tensión social", c: "#c0392b", min: 0, max: 100 }, { k: "servicios", n: "Servicios", c: "#2e8b57", min: 0, max: 100 }])}`;
+      ${grafico([{ k: "imagen", n: "Imagen", c: "#5b9be6", min: 0, max: 100 }, { k: "tension", n: "Tensión social", c: "#ef6457", min: 0, max: 100 }, { k: "servicios", n: "Servicios", c: "#2e8b57", min: 0, max: 100 }])}`;
   } else if (UI.tabLoc === "presupuesto") {
     cuerpo = `<p class="small muted">Subí o bajá cada partida respecto del presupuesto heredado. Gastar más mejora servicios y baja la tensión, pero vacía la caja; si la caja queda en rojo, no pagás sueldos. ${gob ? "Nueve meses sin pagar sueldos pueden terminar en intervención federal." : ""}</p>
       ${AREAS_LOCAL[S.cfg.objetivo].map(([id, n]) => `<div class="slider-row"><span>${n}</span><input type="range" min="-40" max="40" step="5" value="${S.presLocal[id]}" data-larea="${id}"><b>${S.presLocal[id] > 0 ? "+" : ""}${S.presLocal[id]}%</b></div>`).join("")}
@@ -111,14 +112,16 @@ function renderGobiernoLocal() {
       <p class="small muted">Una gestión grande por mes (${S.medidasEsteTrimestre ? "ya la usaste" : "disponible"}).</p>`;
   }
   if (UI.tabLoc === "leyes") cuerpo = htmlLeyes();
+  if (UI.tabLoc === "boletin") cuerpo = htmlBoletin();
   app.innerHTML = `
     <div class="card stack">
-      <div class="row" style="justify-content:space-between;align-items:center"><h2>${gob ? "Gobernación" : "Intendencia"} de ${esc(nombreTerritorio())}</h2><button id="lFin">Terminar el mes ▸</button></div>
-      <div class="tabs">${tabs.map(([id, n]) => `<button data-ltab="${id}" class="${UI.tabLoc === id ? "on" : ""}">${n}</button>`).join("")}</div>
+      ${encabezadoPortal(esc(yo.nombre), '<button id="lFin">Terminar el mes ▸</button>')}
+      <div class="tabs portal-nav">${tabs.map(([id, n]) => `<button data-ltab="${id}" class="${UI.tabLoc === id ? "on" : ""}">${n}</button>`).join("")}</div>
       <div>${cuerpo}</div>
     </div>
     <div class="card"><h3>Registro</h3><div class="log">${S.log.slice(0, 10).map(l => `<div class="${l.tipo}"><span class="t">${l.sem}</span>${esc(l.txt)}</div>`).join("")}</div></div>`;
   document.querySelectorAll("[data-ltab]").forEach(b => b.onclick = () => { UI.tabLoc = b.dataset.ltab; renderGobiernoLocal(); });
+  bindBoletin(renderGobiernoLocal);
   bindLeyes(renderGobiernoLocal);
   document.querySelectorAll("[data-lexp]").forEach(b => b.onclick = () => {
     const r = resolverExpLocal(+b.dataset.lexp, +b.dataset.lop);
@@ -133,6 +136,8 @@ function renderGobiernoLocal() {
   });
   const ln = $("#lNegociar");
   if (ln) ln.onclick = () => {
+    const ag = negociarLegLocal();
+    if (!ag.ok) { colaEventos([{ titulo: "Agenda", texto: ag.msg, tipo: "aviso" }], renderGobiernoLocal); return; }
     S.medidasEsteTrimestre++;
     for (const k in S.legRel) if (k !== yo.partido) S.legRel[k] += 12 + (yo.negociacion - 5) * 2;
     aplicarLocal({ caja: -6, legitimidad: -1 });

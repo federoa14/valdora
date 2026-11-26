@@ -31,7 +31,7 @@ renderFin = function (completo) {
     ${[["Influencia", "influencia"], ["Imagen", "imagen"], ["Disciplina del bloque", "disciplina"], ["Relación con el presidente", "relPres"]].map(([n, k]) => `<tr><td>${n}</td><td>${Math.round(H[k])}</td><td>${Math.round(L[k])}</td></tr>`).join("")}</table>
     <p>Proyectos propios con media sanción: <b>${L.leyesPropias}</b>. Votaciones ganadas: <b>${L.votosGanados}</b>, ${L.decisivo} con tus votos decisivos.</p>
     <div class="row" style="justify-content:center;margin-top:16px"><button id="bOtra">Jugar otra vez</button></div></div>`;
-  try { localStorage.removeItem("valdora_partida"); } catch (e) {}
+  borrarPartidaEnCurso();
   $("#bOtra").onclick = () => { UI.cfg = null; renderCrear(); };
 };
 
@@ -88,7 +88,7 @@ function renderLegislador() {
     cuerpo = `<div class="indicadores">
       ${[["Influencia en la Cámara", Math.round(L.influencia)], ["Imagen pública", Math.round(L.imagen) + "%"], ["Disciplina del bloque", Math.round(L.disciplina)], ["Relación con el presidente", Math.round(L.relPres)], ["Favores acumulados", L.recursos], ["Medias sanciones propias", L.leyesPropias], ["Votaciones ganadas", L.votosGanados], ["Votos decisivos", L.decisivo]].map(([l, v]) => `<div class="ind"><div class="l">${l}</div><div class="n">${v}</div></div>`).join("")}</div>
       <p class="small muted" style="margin-top:10px">Si la disciplina baja de 20, el bloque se parte. Si se queda sin diputados o tu imagen se hunde, perdés la jefatura. Medio término en el mes 24; el mandato dura 48 meses.</p>
-      <h3>Evolución</h3>${grafico([{ k: "influencia", n: "Influencia", c: "#1f5fa8", min: 0, max: 100 }, { k: "disciplina", n: "Disciplina", c: "#2e8b57", min: 0, max: 100 }, { k: "imagen", n: "Imagen", c: "#c27c0e", min: 0, max: 100 }])}`;
+      <h3>Evolución</h3>${grafico([{ k: "influencia", n: "Influencia", c: "#5b9be6", min: 0, max: 100 }, { k: "disciplina", n: "Disciplina", c: "#2e8b57", min: 0, max: 100 }, { k: "imagen", n: "Imagen", c: "#e3a63b", min: 0, max: 100 }])}`;
   }
   if (UI.tabLeg === "leyes") cuerpo = htmlLeyes();
   app.innerHTML = `

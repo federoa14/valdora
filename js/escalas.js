@@ -7,49 +7,43 @@
 
 const PROVINCIAS_NACION = PROVINCIAS.slice();
 
-const PROVINCIAS_JUGABLES = {
-  granribera: { nombre: "Gran Ribera", bancas: 92, deptos: [
-    ["La Matanza Norte", 10, "conurbano"], ["Lomas del Sur", 8, "conurbano"], ["Quilmes Viejo", 7, "conurbano"], ["Moreno y Merlo", 9, "conurbano"],
-    ["Tres de Febrero", 6, "capital"], ["Vicente López Norte", 5, "capital"], ["Costa Atlántica", 6, "capital"], ["Bahía del Sur", 4, "agro"],
-    ["Pergamino y el Norte", 5, "agro"], ["Centro agrícola", 6, "agro"], ["La Plata", 7, "capital"], ["Sudoeste rural", 3, "agro"] ] },
-  sierras: { nombre: "Sierras Centrales", bancas: 70, deptos: [
-    ["Capital serrana", 35, "capital"], ["Río Cuarto", 7, "agro"], ["San Justo", 6, "agro"], ["Punilla", 5, "cuyo"],
-    ["Colón", 7, "conurbano"], ["Tercero Arriba", 4, "agro"], ["Calamuchita", 3, "cuyo"], ["Noroeste serrano", 3, "norte"] ] },
-  cordillera: { nombre: "Cordillera", bancas: 48, deptos: [
-    ["Capital cuyana", 25, "capital"], ["Godoy Cruz", 12, "capital"], ["Las Heras", 11, "conurbano"], ["San Rafael", 10, "agro"],
-    ["Valle de Uco", 7, "agro"], ["Maipú y Luján", 14, "conurbano"], ["Malargüe", 2, "patagonia"], ["Este viñatero", 9, "agro"] ] },
-  montaraz: { nombre: "Montaraz", bancas: 32, deptos: [
-    ["Capital chaqueña", 30, "norte"], ["Presidencia Roque", 10, "norte"], ["El Impenetrable", 6, "norte"], ["Sáenz Peña", 9, "norte"],
-    ["Villa Ángela", 6, "agro"], ["Charata", 5, "agro"], ["Resistencia Sur", 12, "conurbano"] ] },
-};
+// Las 24 jurisdicciones son jugables como gobernador, con sus departamentos reales
+// (Buenos Aires se juega por secciones electorales, que agrupan sus 135 partidos)
+const PROVINCIAS_JUGABLES = Object.fromEntries(GEO_AR.nacion.provincias.map(p => [p.id, {
+  nombre: p.nombre, bancas: p.legBancas,
+  distritos: p.id === "buenosaires" ? GEO_AR.deptos[p.id].secciones : GEO_AR.deptos[p.id].deptos,
+  w: GEO_AR.deptos[p.id].w, h: GEO_AR.deptos[p.id].h,
+  nDeptos: GEO_AR.deptos[p.id].deptos.length,
+}]));
+// Municipios jugables como intendente (zonas de barrios esquemáticas dentro del límite real)
+const CIUDADES_JUGABLES = Object.fromEntries(CIUDADES_AR.map(c => [c.id, c]));
+function ciudadActual() { return CIUDADES_JUGABLES[(S && S.cfg && S.cfg.ciudad) || "lamatanza"] || CIUDADES_AR[0]; }
 
-const CIUDAD = { nombre: "Puerto Ribera", bancas: 24, barrios: [
-  ["Centro", 9, "capital"], ["Barrio Norte", 7, "capital"], ["La Costanera", 6, "capital"], ["Villa Obrera", 14, "conurbano"],
-  ["Barrio Ferroviario", 11, "conurbano"], ["Asentamiento El Bajo", 9, "norte"], ["San Martín", 12, "conurbano"], ["Parque Industrial", 8, "patagonia"],
-  ["Quintas del Oeste", 6, "agro"], ["Los Álamos", 10, "conurbano"], ["Barrio Universitario", 8, "capital"] ] };
-
-function mapaLocal(lista) {
-  // dispone los distritos en una grilla de 4 columnas
-  const tot = lista.reduce((a, d) => a + d[1], 0);
-  return lista.map(([nombre, pob, perfil], i) => ({ id: "d" + i, nombre, pob: Math.round(pob / tot * 1000) / 10, perfil, x: i % 4, y: Math.floor(i / 4), dip: 1 }));
+function mapaGeo(lista, w, h, nivel) {
+  const tot = lista.reduce((a, d) => a + (d.hab || d.pob || 0), 0);
+  MAPA_META = { w, h, nivel };
+  return lista.map(d => ({ id: d.id, nombre: d.nombre, pob: Math.round((d.hab || d.pob || 0) / tot * 1000) / 10, perfil: d.perfil, path: d.path, cx: d.cx, cy: d.cy, dip: 1 }));
 }
 function mapaDeCfg(cfg) {
-  if (cfg.objetivo === "gobernador") return mapaLocal(PROVINCIAS_JUGABLES[cfg.provincia || "granribera"].deptos);
-  if (cfg.objetivo === "intendente") return mapaLocal(CIUDAD.barrios);
-  if (cfg.objetivo === "legislador") return mapaLocal(PROVINCIAS_JUGABLES.granribera.deptos);
+  if (cfg.objetivo === "gobernador" || cfg.objetivo === "legislador") {
+    const P = PROVINCIAS_JUGABLES[cfg.objetivo === "legislador" ? "buenosaires" : (cfg.provincia || "buenosaires")] || PROVINCIAS_JUGABLES.buenosaires;
+    return mapaGeo(P.distritos, P.w, P.h, "provincia");
+  }
+  if (cfg.objetivo === "intendente") { const C = CIUDADES_JUGABLES[cfg.ciudad || "lamatanza"] || CIUDADES_AR[0]; return mapaGeo(C.barrios, C.w, C.h, "ciudad"); }
+  MAPA_META = { w: GEO_AR.nacion.w, h: GEO_AR.nacion.h, nivel: "nacion" };
   return PROVINCIAS_NACION;
 }
-
 function esLocal() { return S && S.cfg && (S.cfg.objetivo === "gobernador" || S.cfg.objetivo === "intendente"); }
 function mapaNoNacional() { return !!(S && S.cfg && S.cfg.objetivo && S.cfg.objetivo !== "presidente"); }
 function nombreCargo() { return !S ? "" : S.cfg.objetivo === "gobernador" ? "gobernador" : S.cfg.objetivo === "intendente" ? "intendente" : S.cfg.objetivo === "legislador" ? "diputado nacional" : "presidente"; }
-function nombreTerritorio() { return S.cfg.objetivo === "gobernador" ? PROVINCIAS_JUGABLES[S.cfg.provincia || "granribera"].nombre : S.cfg.objetivo === "intendente" ? CIUDAD.nombre : S.cfg.objetivo === "legislador" ? "Gran Ribera" : "Valdora"; }
+function nombreTerritorio() { return S.cfg.objetivo === "gobernador" ? PROVINCIAS_JUGABLES[S.cfg.provincia || "buenosaires"].nombre : S.cfg.objetivo === "intendente" ? ciudadActual().nombre : S.cfg.objetivo === "legislador" ? "Buenos Aires" : "la Argentina"; }
 
 const _iniciarPartidaEsc = iniciarPartida;
 iniciarPartida = function (cfg) {
   // restaurar el mapa nacional antes de cada partida
   PROVINCIAS.splice(0, PROVINCIAS.length, ...mapaDeCfg(cfg));
   _iniciarPartidaEsc(cfg);
+  S.mapaReal = true;
   if (mapaNoNacional()) {
     S.log = S.log.map(l => ({ ...l, txt: l.txt.replace("campaña presidencial", `campaña para ${nombreCargo()} ${S.cfg.objetivo === "legislador" ? "por" : "de"} ${nombreTerritorio()}`) }));
     // los partidos chicos casi no compiten en lo local; los rivales arrancan más conocidos
@@ -89,7 +83,7 @@ function iniciarGobiernoLocal() {
   S.trimestre = 1; S.mes = 1; S.paso = 1 / 3;
   const yo = S.jugador, gob = S.cfg.objetivo === "gobernador";
   // Legislatura provincial o Concejo Deliberante: mitad elegida ahora, mitad heredada
-  const total = gob ? PROVINCIAS_JUGABLES[S.cfg.provincia || "granribera"].bancas : CIUDAD.bancas;
+  const total = gob ? PROVINCIAS_JUGABLES[S.cfg.provincia || "buenosaires"].bancas : ciudadActual().bancas;
   const votos = {};
   for (const cid in S.resultadoGeneral.nac) { const c = S.candidatos.find(x => x.id === cid); votos[c.partido] = (votos[c.partido] || 0) + S.resultadoGeneral.nac[cid]; }
   const nuevas = dHondt(votos, Math.ceil(total / 2));
@@ -417,8 +411,33 @@ cargar = function () {
   // partidas guardadas con turnos trimestrales: se pasan a meses
   if (ok && S && S.fase !== "campana" && S.trimestre && !S.mes) { S.mes = (S.trimestre - 1) * 3 + 1; S.paso = 1 / 3; }
   if (ok && S && S.cfg) {
+    migrarMapaReal();
     PROVINCIAS.splice(0, PROVINCIAS.length, ...mapaDeCfg(S.cfg));
     if (S.cfg.objetivo === "gobernador" || S.cfg.objetivo === "intendente") { if (!PARTIDOS.PROV) PARTIDOS.PROV = { id: "PROV", nombre: "Vecinalistas y provinciales", corto: "Prov.", color: "#4caf50", ideo: 45 }; }
   }
   return ok;
 };
+
+// Partidas de versiones anteriores (mapa ficticio): se pasan a las jurisdicciones reales
+const VIEJAS_A_REALES = { puna: "jujuy", salinas: "salta", banados: "formosa", ambato: "catamarca", canaveral: "tucuman", quebracho: "santiago", montaraz: "chaco", esteros: "corrientes", yerbales: "misiones", famatina: "larioja", sierras: "cordoba", litoral: "santafe", islas: "entrerios", zonda: "sanjuan", cuyoseco: "sanluis", granribera: "buenosaires", capital: "caba", cordillera: "mendoza", pampaseca: "lapampa", confluencia: "neuquen", valle: "rionegro", meseta: "chubut", glaciares: "santacruz", findelmundo: "tdf" };
+function migrarMapaReal() {
+  if (S.mapaReal) return;
+  S.mapaReal = true;
+  if (S.cfg.provincia && VIEJAS_A_REALES[S.cfg.provincia]) S.cfg.provincia = VIEJAS_A_REALES[S.cfg.provincia];
+  const nuevos = mapaDeCfg(S.cfg).map(p => p.id);
+  const ren = obj => {
+    if (!obj || typeof obj !== "object") return obj;
+    const out = {};
+    for (const k in obj) {
+      let nk = VIEJAS_A_REALES[k] || k;
+      const m = /^d(\d+)$/.exec(k); if (m && +m[1] < 60) nk = nuevos[+m[1]] || k; // distritos locales viejos: por orden
+      out[nk] = obj[k];
+    }
+    if (mapaNoNacional()) for (const id of nuevos) if (!(id in out)) out[id] = Object.values(obj)[0] || 0;
+    return out;
+  };
+  if (S.gobernadores) S.gobernadores = ren(S.gobernadores);
+  for (const c of S.candidatos || []) { c.know = ren(c.know); c.local = ren(c.local); }
+  if (S.jugador && S.jugador !== (S.candidatos || []).find(c => c.esJugador)) { S.jugador.know = ren(S.jugador.know); S.jugador.local = ren(S.jugador.local); }
+  if (S.resultadoGeneral && S.resultadoGeneral.porProv) S.resultadoGeneral.porProv = ren(S.resultadoGeneral.porProv);
+}

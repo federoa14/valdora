@@ -70,12 +70,12 @@ const DILEMAS = [
   { id: "provinciaQuiebra", titulo: "Una provincia no paga sueldos", peso: 2,
     texto: "El gobierno de Montaraz no puede pagar los sueldos estatales. Hay incidentes frente a la Casa de Gobierno y la policía provincial amenaza con acuartelarse.",
     opciones: [
-      { t: "Rescate con un adelanto de coparticipación", pista: "Plata nacional, gobernador agradecido", ind: { deficit: 0.15, tension: -2 }, fx: "gobRelacion:montaraz:30", riesgo: 2 },
-      { t: "Intervención federal de la provincia", pista: "Necesita ley del Congreso; muy fuerte", fx: "intervencion:montaraz" },
-      { t: "Que se arregle sola: emitir cuasimonedas", pista: "Sin costo nacional; caos provincial", ind: { tension: 3, imagen: -1 }, fx: "gobRelacion:montaraz:-25",
+      { t: "Rescate con un adelanto de coparticipación", pista: "Plata nacional, gobernador agradecido", ind: { deficit: 0.15, tension: -2 }, fx: "gobRelacion:chaco:30", riesgo: 2 },
+      { t: "Intervención federal de la provincia", pista: "Necesita ley del Congreso; muy fuerte", fx: "intervencion:chaco" },
+      { t: "Que se arregle sola: emitir cuasimonedas", pista: "Sin costo nacional; caos provincial", ind: { tension: 3, imagen: -1 }, fx: "gobRelacion:chaco:-25",
         dif: [{ en: 1, texto: "Montaraz emite bonos cuasimoneda. Otras provincias amenazan con copiarla.", ind: { inflacion: 0.3, legitimidad: -2 } }] },
     ] },
-  { id: "tomaTierras", titulo: "Toma de tierras en Gran Ribera", peso: 2,
+  { id: "tomaTierras", titulo: "Toma de tierras en el conurbano bonaerense", peso: 2,
     texto: "Dos mil familias ocupan un predio en el conurbano. El dueño pide el desalojo y un juez lo ordena. Los movimientos sociales defienden la toma.",
     opciones: [
       { t: "Desalojar con fuerzas federales", pista: "Orden y propiedad; riesgo de violencia", ind: { tension: 4, inseguridad: -1 }, act: { movimientos: -20, fuerzas: 10, prensa: 5 }, grp: { media: 0.2, informales: -0.3 },
@@ -97,7 +97,7 @@ const DILEMAS = [
     texto: "Un juez de la Federación del Norte ordena pagar el 100% a los fondos que no entraron al canje. Si no pagás, bloquea los pagos al resto de los acreedores.",
     opciones: [
       { t: "Acatar y negociar con los holdouts", pista: "Volvés a los mercados; la oposición te acusa de entregar", ind: { reservas: -2500, imagen: -3 }, act: { mercados: 20, norte: 10 },
-        dif: [{ en: 2, texto: "Valdora vuelve a emitir deuda en los mercados internacionales.", ind: { reservas: 5000, deuda: 3 } }] },
+        dif: [{ en: 2, texto: "La Argentina vuelve a emitir deuda en los mercados internacionales.", ind: { reservas: 5000, deuda: 3 } }] },
       { t: "Desconocer el fallo: \"Patria o buitres\"", pista: "Épica nacional, default técnico", ind: { imagen: 5 }, act: { mercados: -20, norte: -15 }, fx: "default" },
       { t: "Pagar en jurisdicción local", pista: "Ingenioso, pero el juez lo declara desacato", ind: { imagen: 2 }, act: { mercados: -10, norte: -8 } },
     ] },
@@ -171,7 +171,7 @@ const DILEMAS = [
       { t: "Romper con el Fondo", pista: "Soberanía; adiós desembolsos", ind: { imagen: 3 }, act: { fmi: -40, mercados: -20 }, fx: "finFMI" },
     ] },
   { id: "aerolinea", titulo: "La aerolínea estatal pierde plata", peso: 1.2, unico: true,
-    texto: "Aerolíneas Valdorenses pierde 400 millones de dólares por año. Hay propuestas para privatizarla, cerrarla o sostenerla.",
+    texto: "La aerolínea de bandera pierde 400 millones de dólares por año. Hay propuestas para privatizarla, cerrarla o sostenerla.",
     opciones: [
       { t: "Privatizarla", pista: "Ahorro y conflicto con los gremios aeronáuticos", ind: { deficit: -0.15, tension: 2 }, act: { cgt: -12, mercados: 8 }, grp: { estatales: -0.2 }, fx: "ley:privAerolinea" },
       { t: "Sostenerla: conecta al país", pista: "Gasto que sigue; orgullo nacional", ind: { deficit: 0.05, imagen: 1 }, act: { cgt: 5 } },
@@ -195,12 +195,12 @@ const DILEMAS = [
   { id: "gobernadorPide", titulo: "Un gobernador pide fondos a cambio de votos", peso: 2.5,
     texto: "El gobernador de Sierras Centrales ofrece los votos de sus diputados y senadores para tus leyes a cambio de financiar una autopista.",
     opciones: [
-      { t: "Aceptar y firmar el convenio", pista: "Votos asegurados por un tiempo", ind: { deficit: 0.15 }, fx: "gobRelacion:sierras:35" },
-      { t: "Rechazar: \"no compro votos\"", pista: "Prolijo; perdés un aliado", ind: { legitimidad: 1 }, fx: "gobRelacion:sierras:-15" },
-      { t: "Ofrecerle un ministerio a su gente", pista: "Sin costo fiscal; tu partido protesta", fx: "gobRelacion:sierras:20", ind: { imagen: -1 } },
+      { t: "Aceptar y firmar el convenio", pista: "Votos asegurados por un tiempo", ind: { deficit: 0.15 }, fx: "gobRelacion:cordoba:35" },
+      { t: "Rechazar: \"no compro votos\"", pista: "Prolijo; perdés un aliado", ind: { legitimidad: 1 }, fx: "gobRelacion:cordoba:-15" },
+      { t: "Ofrecerle un ministerio a su gente", pista: "Sin costo fiscal; tu partido protesta", fx: "gobRelacion:cordoba:20", ind: { imagen: -1 } },
     ] },
   { id: "votoONU", titulo: "Votación en la Asamblea General", peso: 1.2,
-    texto: "La Federación del Norte pide que Valdora vote a favor de condenar a un país aliado de la República Popular del Este. Brasilia del Sur se abstendrá.",
+    texto: "La Federación del Norte pide que la Argentina vote a favor de condenar a un país aliado de la República Popular del Este. Brasilia del Sur se abstendrá.",
     opciones: [
       { t: "Votar con la Federación del Norte", pista: "Apoyo financiero; el Este se enfría", act: { norte: 15 }, ind: { reservas: 500 } },
       { t: "Abstenerse junto a Brasilia del Sur", pista: "Tradición de no alineamiento", ind: { legitimidad: 1 } },

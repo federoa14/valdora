@@ -26,33 +26,9 @@ const PERFILES = {
   patagonia: { mix: { jovenes: 19, jubilados: 10, trabajadores: 22, informales: 10, media: 14, campo: 3, empresarios: 2, estatales: 20 }, shift: -2 },
 };
 
-// Mapa esquemático: col, fila, ancho, alto (en celdas)
-const PROVINCIAS = [
-  { id: "puna",       nombre: "Puna",                  x: 1, y: 0, pob: 1.7,  dip: 6,  perfil: "norte" },
-  { id: "salinas",    nombre: "Salinas",               x: 2, y: 0, pob: 3.1,  dip: 7,  perfil: "norte" },
-  { id: "banados",    nombre: "Bañados",               x: 3, y: 0, pob: 1.3,  dip: 5,  perfil: "norte" },
-  { id: "ambato",     nombre: "Ambato",                x: 0, y: 1, pob: 0.9,  dip: 5,  perfil: "norte" },
-  { id: "canaveral",  nombre: "Cañaveral",             x: 1, y: 1, pob: 3.7,  dip: 9,  perfil: "norte" },
-  { id: "quebracho",  nombre: "Quebracho",             x: 2, y: 1, pob: 2.2,  dip: 7,  perfil: "norte" },
-  { id: "montaraz",   nombre: "Montaraz",              x: 3, y: 1, pob: 2.6,  dip: 7,  perfil: "norte" },
-  { id: "esteros",    nombre: "Esteros",               x: 4, y: 1, pob: 2.7,  dip: 7,  perfil: "norte" },
-  { id: "yerbales",   nombre: "Yerbales",              x: 5, y: 1, pob: 2.8,  dip: 7,  perfil: "norte" },
-  { id: "famatina",   nombre: "Famatina",              x: 0, y: 2, pob: 0.8,  dip: 5,  perfil: "norte" },
-  { id: "sierras",    nombre: "Sierras Centrales",     x: 1, y: 2, w: 2, pob: 8.2, dip: 18, perfil: "agro" },
-  { id: "litoral",    nombre: "Litoral",               x: 3, y: 2, pob: 7.8,  dip: 19, perfil: "agro" },
-  { id: "islas",      nombre: "Islas del Paraná",      x: 4, y: 2, pob: 3.1,  dip: 9,  perfil: "agro" },
-  { id: "zonda",      nombre: "Zonda",                 x: 0, y: 3, pob: 1.8,  dip: 6,  perfil: "cuyo" },
-  { id: "cuyoseco",   nombre: "Cuyo Seco",             x: 1, y: 3, pob: 1.2,  dip: 5,  perfil: "cuyo" },
-  { id: "granribera", nombre: "Gran Ribera",           x: 2, y: 3, w: 2, h: 2, pob: 38, dip: 70, perfil: "conurbano" },
-  { id: "capital",    nombre: "Capital Federal",       x: 4, y: 3, pob: 6.8,  dip: 25, perfil: "capital" },
-  { id: "cordillera", nombre: "Cordillera",            x: 0, y: 4, pob: 4.3,  dip: 10, perfil: "cuyo" },
-  { id: "pampaseca",  nombre: "Pampa Seca",            x: 1, y: 4, pob: 0.8,  dip: 5,  perfil: "agro" },
-  { id: "confluencia",nombre: "Confluencia",           x: 0, y: 5, pob: 1.5,  dip: 5,  perfil: "patagonia" },
-  { id: "valle",      nombre: "Valle del Río",         x: 1, y: 5, pob: 1.6,  dip: 5,  perfil: "patagonia" },
-  { id: "meseta",     nombre: "Meseta",                x: 1, y: 6, pob: 1.3,  dip: 5,  perfil: "patagonia" },
-  { id: "glaciares",  nombre: "Glaciares",             x: 1, y: 7, pob: 0.8,  dip: 5,  perfil: "patagonia" },
-  { id: "findelmundo",nombre: "Fin del Mundo",         x: 2, y: 8, pob: 0.4,  dip: 5,  perfil: "patagonia" },
-];
+// Las 24 jurisdicciones reales de la Argentina (límites y población en geo_ar.js)
+const PROVINCIAS = GEO_AR.nacion.provincias.map(p => ({ id: p.id, nombre: p.nombre, corto: p.corto, pob: p.pob, dip: p.dip, perfil: p.perfil, path: p.path, cx: p.cx, cy: p.cy, marcador: !!p.marcador }));
+let MAPA_META = { w: GEO_AR.nacion.w, h: GEO_AR.nacion.h, nivel: "nacion" };
 
 // Partidos nacionales. "fuerza" = bonus territorial por perfil.
 const PARTIDOS = {
@@ -219,7 +195,7 @@ const EVENTOS_GOB = [
   { id: "cacerolazo", titulo: "Cacerolazo en la Capital", cond: s => s.ind.inflacion > 5 || s.ind.inseguridad > 70, peso: 2,
     texto: "Miles de vecinos golpean cacerolas en las esquinas.", ef: { imagen: -3, tension: 4 } },
   { id: "saqueos", titulo: "Saqueos en el conurbano", cond: s => s.ind.tension > 72, peso: 4,
-    texto: "Supermercados saqueados en Gran Ribera. El gobierno debe responder.", ef: { tension: 6, imagen: -5, legitimidad: -4 }, decision: "saqueos" },
+    texto: "Supermercados saqueados en el conurbano bonaerense. El gobierno debe responder.", ef: { tension: 6, imagen: -5, legitimidad: -4 }, decision: "saqueos" },
   { id: "inversion", titulo: "La República Popular del Este ofrece inversiones", peso: 1,
     texto: "Ofrece financiar represas a cambio de una base de observación espacial.", decision: "este" },
   { id: "campoPara", titulo: "Paro y cortes del campo", cond: s => s.medidasActivas.includes("retMoviles"), peso: 5,
@@ -231,7 +207,7 @@ const EVENTOS_GOB = [
     texto: "Miles de evacuados. Se pide ayuda del Estado nacional.", ef: { deficit: 0.2, imagen: -1 } },
   { id: "gasNC", titulo: "Récord de producción de gas no convencional", peso: 1,
     texto: "Confluencia exporta gas por primera vez en décadas.", ef: { reservas: 2500, crecimiento: 0.4 } },
-  { id: "mundial", titulo: "¡Valdora campeón del Mundial!", peso: 0.3, unico: true,
+  { id: "mundial", titulo: "¡Argentina campeón del Mundial!", peso: 0.3, unico: true,
     texto: "Millones festejan en las calles. Por unos días nadie habla de la economía.", ef: { imagen: 5, tension: -8 } },
 ];
 

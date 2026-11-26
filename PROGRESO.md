@@ -48,5 +48,12 @@ Documento de diseño: https://claude.ai/artifact/2W7cuhDDo71UUFCJoaj9xx
 - [x] Proyectos de la oposición: promulgar o vetar (Ejecutivo) y votarlos en el recinto (diputado)
 - [x] Prueba automática `npm test` y flujo de GitHub Pages listos para el repositorio
 
+## Etapa 7: v0.8 — Argentina real, agenda, guardado y portal
+- [x] Mapa real: 24 provincias, 526 departamentos (INDEC), 8 secciones electorales bonaerenses y barrios de 8 municipios; bancas reales (257/72 y legislaturas provinciales)
+- [x] Agenda mensual limitada: campaña 6 acciones, presidente 3 casilleros (4 con gestión alta), gobernador e intendente 2
+- [x] Autoguardado mensual, 3 ranuras, exportar e importar archivo .json
+- [x] Portal de gobierno en azul oscuro: emblema inventado, Boletín Oficial, cuadros estadísticos, ejecución presupuestaria, sala de prensa
+- [ ] Entrega 2: estadísticas con gráficos, Jefatura de Gabinete y ministerios, Economía (banco central ficticio, letras de liquidez, bonos, dólar), Cancillería y organismos internacionales, crisis, petróleo y oro, incertidumbre y presión social
+
 ## Próximas ideas
 - [x] Escala legislador / jefe de bloque (v0.5)

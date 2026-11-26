@@ -49,7 +49,7 @@ function renderEstado() {
       <span class="pill">Imagen <b>${Math.round(S.ind.imagen)}%</b></span>
       <span class="pill">Inflación <b>${fmt(S.ind.inflacion)}%</b> mensual</span>
       <span class="pill">Tensión <b>${Math.round(S.ind.tension)}</b></span>
-      <span class="pill">Medida del mes <b>${S.medidasEsteTrimestre ? "usada" : "disponible"}</b></span>`;
+      <span class="pill" title="Casilleros de agenda: cada acción de gobierno fuera del despacho ocupa uno; una medida grande ocupa dos">Agenda <b>${agendaDisponible()}</b>/${agendaMax()}</span>`;
   }
 }
 
@@ -58,16 +58,22 @@ function renderPortada() {
   S = null; renderEstado();
   app.innerHTML = `
     <div class="portada card">
-      <h1>VALDORA</h1>
+      ${typeof EMBLEMA_SVG !== "undefined" ? EMBLEMA_SVG : ""}
+      <div class="kicker">Simulador político por turnos</div>
+      <h1 class="titulo-portada">VALDORA</h1>
       <p>Un simulador político por turnos. Armá tu partido o peleá la interna, hacé campaña provincia por provincia, ganá la elección y sobreviví a cuatro años de gobierno con el Congreso, la Justicia, los gobernadores, el Fondo y la calle.</p>
       <div class="row" style="justify-content:center">
         <button id="bNueva">Nueva partida</button>
-        ${hayPartidaGuardada() ? '<button id="bCargar" class="sec">Continuar partida guardada</button>' : ""}
+        ${hayPartidaGuardada() ? '<button id="bCargar" class="sec">Continuar</button>' : ""}
+        <button id="bPartidas" class="sec">Cargar o importar</button>
       </div>
-      <p class="small muted" style="margin-top:24px">País y personajes ficticios. Las reglas se inspiran en la política argentina desde 1983 y en la política internacional desde 1945.</p>
+      <p class="small muted" style="margin-top:24px">Geografía real de la Argentina; partidos, personajes y organismos ficticios. Las reglas se inspiran en la política argentina desde 1983 y en la política internacional desde 1945.</p>
     </div>`;
   $("#bNueva").onclick = renderCrear;
-  const bc = $("#bCargar"); if (bc) bc.onclick = () => { if (cargar()) renderJuego(); };
+  const bc = $("#bCargar"); if (bc) bc.onclick = () => { const u = ultimaPartida(); const r = u ? cargarDe(u.k) : { ok: false }; if (r.ok) renderJuego(); };
+  $("#bPartidas").onclick = () => panelPartidas();
+  const u = ultimaPartida();
+  if (u && bc) bc.title = `${u.m.nombre} · ${u.m.cargo} · ${u.m.fase}, mes ${u.m.mes}`;
 }
 
 // ---------- Creación del personaje ----------
@@ -81,8 +87,8 @@ function renderCrear() {
   const objetivos = [
     ["presidente", "Presidente", "Ejecutivo nacional. Disponible en esta versión."],
     ["gobernador", "Gobernador", "Una provincia: Legislatura, coparticipación, policía y la Nación."],
-    ["intendente", "Intendente", "Puerto Ribera: Concejo Deliberante, tasas, basura, baches y barrios."],
-    ["legislador", "Diputado nacional, jefe de bloque", "Lista por Gran Ribera. En la Cámara conducís tu bloque: votos, negociaciones, proyectos propios."],
+    ["intendente", "Intendente", "Un municipio real (La Matanza, La Plata, Córdoba, Mendoza…): Concejo Deliberante, tasas, basura, baches y barrios."],
+    ["legislador", "Diputado nacional, jefe de bloque", "Lista por la provincia de Buenos Aires. En la Cámara conducís tu bloque: votos, negociaciones, proyectos propios."],
   ];
   const partidos = ["MNJ", "UR", "FC", "LY", "FT"];
   app.innerHTML = `
@@ -117,7 +123,12 @@ function renderCrear() {
       </div>
       ${c.objetivo === "gobernador" ? `<div class="card stack"><h2>Provincia</h2>
         <div class="opciones" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
-          ${Object.entries(PROVINCIAS_JUGABLES).map(([id, P]) => `<div class="opcion ${(c.provincia || "granribera") === id ? "sel" : ""}" data-provj="${id}"><b>${esc(P.nombre)}</b><span class="small muted">${P.deptos.length} departamentos · Legislatura de ${P.bancas} bancas</span></div>`).join("")}
+        </div>
+        <select id="iProvJ" style="max-width:420px">${Object.entries(PROVINCIAS_JUGABLES).sort((a, b) => a[1].nombre.localeCompare(b[1].nombre)).map(([id, P]) => `<option value="${id}" ${(c.provincia || "buenosaires") === id ? "selected" : ""}>${esc(P.nombre)}</option>`).join("")}</select>
+        <p class="small muted">${(() => { const P = PROVINCIAS_JUGABLES[c.provincia || "buenosaires"]; return `${P.nDeptos} departamentos${c.provincia === "buenosaires" || !c.provincia ? " (en la campaña se agrupan en 8 secciones electorales)" : ""} · Legislatura de ${P.bancas} bancas.`; })()}</p></div>` : ""}
+      ${c.objetivo === "intendente" ? `<div class="card stack"><h2>Municipio</h2>
+        <div class="opciones" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
+          ${CIUDADES_AR.map(C => `<div class="opcion ${(c.ciudad || "lamatanza") === C.id ? "sel" : ""}" data-ciudad="${C.id}"><b>${esc(C.nombre)}</b><span class="small muted">${esc(C.provincia)} · Concejo de ${C.bancas} bancas · ${C.barrios.length} barrios o localidades</span></div>`).join("")}
         </div></div>` : ""}
       <div class="card stack">
         <h2>4. Tu camino</h2>
@@ -125,7 +136,7 @@ function renderCrear() {
           <div class="opcion ${c.camino === "fundar" ? "sel" : ""}" data-camino="fundar"><b>Fundar un partido propio</b><span class="small muted">Juntar avales, sin estructura, sin plata y sin fiscales. Ideología propia.</span></div>
           <div class="opcion ${c.camino === "sumarse" ? "sel" : ""}" data-camino="sumarse"><b>Sumarte a un partido existente</b><span class="small muted">Estructura, fondos y fiscales, pero hay que ganar la interna.</span></div>
         </div>
-        ${c.camino === "fundar" ? `<div class="campo"><label>Nombre del partido</label><input id="iPartido" value="${esc(c.nombrePartido)}" placeholder="Ej.: Movimiento Valdorense Renovador" style="width:100%"></div>` : `
+        ${c.camino === "fundar" ? `<div class="campo"><label>Nombre del partido</label><input id="iPartido" value="${esc(c.nombrePartido)}" placeholder="Ej.: Movimiento Renovador Federal" style="width:100%"></div>` : `
           <div class="opciones" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
             ${partidos.map(p => { const P = PARTIDOS[p]; return `<div class="opcion ${c.partido === p ? "sel" : ""}" data-partido="${p}" style="border-left:6px solid ${P.color}"><b>${P.nombre}</b><span class="small muted">${P.desc} Interna por defecto: ${P.interna === "dedo" ? "el dedo del líder" : P.interna === "PASO" ? "PASO" : "interna cerrada"}.</span></div>`; }).join("")}
           </div>
@@ -147,7 +158,8 @@ function renderCrear() {
   document.querySelectorAll("[data-attr]").forEach(el => el.oninput = e => { c[el.dataset.attr] = +e.target.value; renderCrear(); });
   document.querySelectorAll("[data-era]").forEach(el => el.onclick = () => { c.era = el.dataset.era; renderCrear(); });
   document.querySelectorAll("[data-obj]").forEach(el => el.onclick = () => { c.objetivo = el.dataset.obj; renderCrear(); });
-  document.querySelectorAll("[data-provj]").forEach(el => el.onclick = () => { c.provincia = el.dataset.provj; renderCrear(); });
+  const pj = $("#iProvJ"); if (pj) pj.onchange = () => { c.provincia = pj.value; renderCrear(); };
+  document.querySelectorAll("[data-ciudad]").forEach(el => el.onclick = () => { c.ciudad = el.dataset.ciudad; renderCrear(); });
   document.querySelectorAll("[data-camino]").forEach(el => el.onclick = () => { c.camino = el.dataset.camino; renderCrear(); });
   document.querySelectorAll("[data-partido]").forEach(el => el.onclick = () => { c.partido = el.dataset.partido; c.ideo = Math.round((c.ideo + PARTIDOS[c.partido].ideo) / 2); renderCrear(); });
   const ip = $("#iPartido"); if (ip) ip.oninput = e => c.nombrePartido = e.target.value;
@@ -155,9 +167,9 @@ function renderCrear() {
   $("#bVolver").onclick = renderPortada;
   $("#bEmpezar").onclick = () => {
     if (!c.nombre.trim()) c.nombre = "Julia Montenegro";
-    if (c.camino === "fundar" && !c.nombrePartido.trim()) c.nombrePartido = "Movimiento Valdorense Renovador";
+    if (c.camino === "fundar" && !c.nombrePartido.trim()) c.nombrePartido = "Movimiento Renovador Federal";
     iniciarPartida({ ...c });
-    UI.provSel = PROVINCIAS[0].id === "d0" ? "d0" : "granribera";
+    UI.provSel = PROVINCIAS.slice().sort((a, b) => b.pob - a.pob)[0].id;
     renderJuego();
   };
 }
@@ -172,23 +184,26 @@ function renderJuego() {
 
 function unidadMapa() { return typeof esLocal === "function" && mapaNoNacional() ? (S.cfg.objetivo === "intendente" ? "barrio" : "departamento") : "provincia"; }
 // ---------- Mapa ----------
-const CEL = 62;
 function renderMapa(colorPor) {
-  const maxX = Math.max(...PROVINCIAS.map(p => p.x + (p.w || 1)));
-  const maxY = Math.max(...PROVINCIAS.map(p => p.y + (p.h || 1)));
-  let svg = `<svg viewBox="0 0 ${maxX * CEL} ${maxY * CEL}" role="img" aria-label="Mapa de Valdora">`;
+  const M = MAPA_META || { w: 420, h: 897 };
+  const fs = Math.max(7, M.w / 42);
+  let svg = `<svg viewBox="0 0 ${M.w} ${M.h}" class="mapa nivel-${M.nivel || "nacion"}" role="img" aria-label="Mapa">`;
   for (const p of PROVINCIAS) {
-    const w = (p.w || 1) * CEL, h = (p.h || 1) * CEL;
-    const col = colorPor(p);
-    const nom = p.nombre.length > 11 && !(p.w > 1) ? p.nombre.split(" ")[0] : p.nombre;
-    svg += `<g class="prov ${UI.provSel === p.id ? "sel" : ""}" data-prov="${p.id}">
-      <rect x="${p.x * CEL + 2}" y="${p.y * CEL + 2}" width="${w - 4}" height="${h - 4}" rx="8" fill="${col}"><title>${p.nombre}</title></rect>
-      <text x="${p.x * CEL + 8}" y="${p.y * CEL + 18}">${esc(nom)}</text>
-      <text x="${p.x * CEL + 8}" y="${p.y * CEL + h - 10}" style="font-weight:400;font-size:9px">${fmt(p.pob, 1)}%</text>
-    </g>`;
+    if (!p.path) continue;
+    svg += `<path class="prov ${UI.provSel === p.id ? "sel" : ""}" data-prov="${p.id}" d="${p.path}" fill="${colorPor(p)}" fill-rule="evenodd"><title>${esc(p.nombre)} · ${fmt(p.pob, 1)}% del padrón</title></path>`;
   }
-  svg += `</svg>`;
-  return svg;
+  // jurisdicciones diminutas a esta escala (CABA): marcador cliqueable
+  for (const p of PROVINCIAS.filter(x => x.marcador)) svg += `<circle class="prov marcador ${UI.provSel === p.id ? "sel" : ""}" data-prov="${p.id}" cx="${p.cx}" cy="${p.cy}" r="${fs * 0.9}" fill="${colorPor(p)}"><title>${esc(p.nombre)} · ${fmt(p.pob, 1)}% del padrón</title></circle>`;
+  // etiquetas: las más pobladas y la seleccionada
+  const orden = PROVINCIAS.slice().sort((a, b) => b.pob - a.pob);
+  const conEtiqueta = new Set(orden.slice(0, M.nivel === "nacion" ? 24 : 9).map(p => p.id).concat([UI.provSel]));
+  for (const p of PROVINCIAS) {
+    if (!conEtiqueta.has(p.id) || p.cx == null) continue;
+    const nom = (p.corto || p.nombre).replace(/ sección.*$/, "").replace(/^(\d+)ª Sección, /, "$1ª ");
+    const dx = p.marcador ? fs * 1.3 : 0;
+    svg += `<text class="etq" x="${p.cx + dx}" y="${p.cy}" font-size="${fs}" text-anchor="${p.marcador ? "start" : "middle"}">${esc(nom.length > 22 ? nom.slice(0, 21) + "…" : nom)}</text>`;
+  }
+  return svg + `</svg>`;
 }
 function bindMapa(cb) {
   document.querySelectorAll("[data-prov]").forEach(g => g.onclick = () => { UI.provSel = g.dataset.prov; cb(); });
@@ -237,7 +252,7 @@ function renderCampana() {
   app.innerHTML = `
     <div class="grid campana">
       <div class="card">
-        <h2>Mapa de ${esc(typeof esLocal === "function" && mapaNoNacional() ? nombreTerritorio() : "Valdora")}</h2>
+        <h2>Mapa de ${esc(typeof esLocal === "function" && mapaNoNacional() ? nombreTerritorio() : "la República Argentina")}</h2>
         <div id="mapa">${renderMapa(colorPor)}</div>
         <div class="leyenda">${S.candidatos.filter(c => c.activo && !(c.internoRival && S.internaResuelta)).map(c => `<span><i style="background:${PARTIDOS[c.partido].color}"></i>${esc(c.nombre)}</span>`).join("")}</div>
         <p class="small muted">Color: quién lidera en cada ${unidadMapa()}. Más claro, más reñido.</p>
@@ -315,15 +330,17 @@ function deltaInd(k, malo) {
 }
 
 function grafico(series) {
-  const W = 360, H = 120, n = S.hist.length;
-  let out = `<svg viewBox="0 0 ${W} ${H + 18}" style="width:100%">`;
+  const W = 720, H = 170, n = S.hist.length;
+  if (n < 2) return `<p class="small muted">El gráfico se arma con los datos mensuales: aparece al cerrar el primer mes.</p>`;
+  let out = `<svg viewBox="0 0 ${W} ${H + 20}" class="grafico" preserveAspectRatio="none">`;
+  for (let g = 0; g <= 4; g++) { const y = 5 + g * (H - 10) / 4; out += `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="currentColor" opacity=".08"/>`; }
   for (const s of series) {
     const vals = S.hist.map(h => h[s.k]);
     const max = s.max, min = s.min;
-    const pts = vals.map((v, i) => `${(n === 1 ? 0 : i / (n - 1)) * (W - 10) + 5},${H - (v - min) / (max - min) * (H - 10) - 5}`).join(" ");
-    out += `<polyline fill="none" stroke="${s.c}" stroke-width="2.5" points="${pts}"/>`;
+    const pts = vals.map((v, i) => `${(i / (n - 1)) * (W - 10) + 5},${H - (v - min) / (max - min) * (H - 10) - 5}`).join(" ");
+    out += `<polyline fill="none" stroke="${s.c}" stroke-width="2.5" vector-effect="non-scaling-stroke" points="${pts}"/>`;
   }
-  out += `<text x="5" y="${H + 14}" font-size="10" fill="currentColor" opacity=".6">Asunción</text><text x="${W - 5}" y="${H + 14}" font-size="10" text-anchor="end" fill="currentColor" opacity=".6">Hoy</text></svg>`;
+  out += `</svg><div class="row small muted" style="justify-content:space-between"><span>Asunción</span><span>Hoy</span></div>`;
   out += `<div class="leyenda">${series.map(s => `<span><i style="background:${s.c}"></i>${s.n}</span>`).join("")}</div>`;
   return out;
 }
@@ -359,7 +376,7 @@ function renderGobierno() {
   renderEstado();
   const I = S.ind, yo = S.jugador;
   const pendExp = (S.expedientes || []).filter(e => !e.resuelto).length;
-  const tabs = [["despacho", `Despacho${pendExp ? " (" + pendExp + ")" : ""}`], ["resumen", "Indicadores"], ["poder", "Gabinete y factores de poder"], ["presupuesto", "Presupuesto"], ["medidas", "Medidas"], ["congreso", "Congreso y gobernadores"], ["leyes", `Leyes${(S.leyes && S.leyes.tram.length) ? " (" + S.leyes.tram.length + ")" : ""}`], ["justicia", `Justicia${(S.causasJ || []).filter(c => !c.cerrada).length ? " (" + S.causasJ.filter(c => !c.cerrada).length + ")" : ""}`], ["prensa", "Prensa"], ["exterior", "Relaciones exteriores"]];
+  const tabs = [["despacho", `Despacho${pendExp ? " (" + pendExp + ")" : ""}`], ["resumen", "Estadísticas"], ["poder", "Gabinete y factores de poder"], ["presupuesto", "Presupuesto"], ["medidas", "Medidas"], ["congreso", "Congreso y gobernadores"], ["leyes", `Leyes${(S.leyes && S.leyes.tram.length) ? " (" + S.leyes.tram.length + ")" : ""}`], ["boletin", "Boletín Oficial"], ["justicia", `Justicia${(S.causasJ || []).filter(c => !c.cerrada).length ? " (" + S.causasJ.filter(c => !c.cerrada).length + ")" : ""}`], ["prensa", "Prensa"], ["exterior", "Relaciones exteriores"]];
   const indicadores = [
     ["inflacion", "Inflación mensual", fmt(I.inflacion) + "%", true],
     ["desempleo", "Desempleo", fmt(I.desempleo) + "%", true],
@@ -393,7 +410,7 @@ function renderGobierno() {
       <h3>Gabinete</h3>
       <table class="tally"><tr><th>Cargo</th><th>Titular</th><th>Capacidad</th><th>Desgaste</th></tr>
       ${S.gabinete.map(m => `<tr><td>${m.cargo}</td><td>${esc(m.nombre)}</td><td>${m.comp}/10</td><td>${m.desgaste}</td></tr>`).join("")}</table>
-      <p class="small muted">Vicepresidente: <b>${esc(S.vice.nombre)}</b>, lealtad ${Math.round(S.vice.lealtad)}/100${S.vice.lealtad < 30 ? " (su sector vota con libertad de acción en el Senado)" : ""}.${S.delegacion > 0 ? ` Facultades delegadas por ${S.delegacion} trimestres más.` : ""}${S.enDefault ? " Valdora está en default." : ""}</p>
+      <p class="small muted">Vicepresidente: <b>${esc(S.vice.nombre)}</b>, lealtad ${Math.round(S.vice.lealtad)}/100${S.vice.lealtad < 30 ? " (su sector vota con libertad de acción en el Senado)" : ""}.${S.delegacion > 0 ? ` Facultades delegadas por ${S.delegacion} trimestres más.` : ""}${S.enDefault ? " El país está en default." : ""}</p>
       <h3 style="margin-top:12px">Factores de poder</h3>
       <p class="small muted">Debajo de 25 pasan a la acción en tu contra; arriba de 75 te ayudan. Se mueven con tus decisiones y con la economía.</p>
       ${ACTORES.map(a => barra(a.nombre, S.actoresRel[a.id])).join("")}`;
@@ -401,18 +418,20 @@ function renderGobierno() {
     const nivel = I.tension < 30 ? "Calma" : I.tension < 50 ? "Malestar" : I.tension < 70 ? "Conflicto" : I.tension < 85 ? "Crisis" : "Estallido";
     cuerpo = `
       <div class="indicadores">${indicadores.map(([k, l, v, malo]) => `<div class="ind"><div class="l">${l}</div><div class="n">${v}</div>${deltaInd(k, malo)}</div>`).join("")}</div>
+      ${htmlEstadisticas(FILAS_EST_NAC, "Instituto Nacional de Estadística y Censos (ficticio)")}
       <h3 style="margin-top:14px">Tensión social: ${Math.round(I.tension)} (${nivel})</h3>
       <div class="tension"><div class="marca-t" style="left:calc(${I.tension}% - 2px)"></div></div>
       <div class="row small muted" style="justify-content:space-between"><span>Calma</span><span>Malestar</span><span>Conflicto</span><span>Crisis</span><span>Estallido</span></div>
       <h3 style="margin-top:14px">Evolución</h3>
-      ${grafico([{ k: "imagen", n: "Imagen", c: "#1f5fa8", min: 0, max: 100 }, { k: "tension", n: "Tensión social", c: "#c0392b", min: 0, max: 100 }, { k: "pobreza", n: "Pobreza", c: "#c27c0e", min: 0, max: 100 }])}
+      ${grafico([{ k: "imagen", n: "Imagen", c: "#5b9be6", min: 0, max: 100 }, { k: "tension", n: "Tensión social", c: "#ef6457", min: 0, max: 100 }, { k: "pobreza", n: "Pobreza", c: "#e3a63b", min: 0, max: 100 }])}
       <p class="small muted">Medidas vigentes: ${S.medidasActivas.length ? S.medidasActivas.map(id => MEDIDAS.find(m => m.id === id).nombre).join(", ") : "ninguna"}. DNU firmados: ${S.dnuCount}. Corte Suprema: ${S.corte.miembros} miembros, ${S.corte.afines} afines.${S.fmi && S.fmi.activo ? ` Programa con el Fondo: meta de déficit ${fmt(S.fmi.metaDeficit)}%.` : ""}</p>`;
   } else if (UI.tabGob === "presupuesto") {
     cuerpo = `
       <p class="small muted">Subí o bajá cada partida respecto del presupuesto heredado. El gasto extra aumenta el déficit; el recorte baja el déficit pero tiene costos sociales. El presupuesto lo aprueba el Congreso: si cambiás mucho, se vota.</p>
       ${AREAS.map(a => `<div class="slider-row"><span>${a.nombre}</span><input type="range" min="-40" max="40" step="5" value="${S.presupuesto[a.id]}" data-area="${a.id}"><b>${S.presupuesto[a.id] > 0 ? "+" : ""}${S.presupuesto[a.id]}%</b></div>`).join("")}
       <div class="slider-row" style="margin-top:10px"><span><b>Presión impositiva</b></span><input type="range" min="-20" max="20" step="2" value="${S.impuestos}" id="slImp"><b>${S.impuestos > 0 ? "+" : ""}${S.impuestos}%</b></div>
-      <p class="small muted">Para subir impuestos de verdad (IVA, Ganancias, retenciones) usá las medidas: las leyes tributarias empiezan en Diputados.</p>`;
+      <p class="small muted">Para subir impuestos de verdad (IVA, Ganancias, retenciones) usá las medidas: las leyes tributarias empiezan en Diputados.</p>
+      ${htmlEjecucion()}`;
   } else if (UI.tabGob === "medidas") {
     const nombreInst = { resolucion: "Resolución", decreto: "Decreto", dnu: "DNU", ley: "Proyecto de ley", delegado: "Decreto delegado" };
     cuerpo = `
@@ -450,7 +469,7 @@ function renderGobierno() {
       </div>`).join("") : '<p class="muted">No hay causas abiertas contra tu gobierno.</p>'}
       ${cerradas.length ? `<h3 style="margin-top:10px">Causas terminadas</h3><ul class="small">${cerradas.map(c => `<li>${esc(c.tema)} (${esc(c.imputado.nombre)})</li>`).join("")}</ul>` : ""}`;
   } else if (UI.tabGob === "prensa") {
-    cuerpo = `<h3>Tapas de hoy</h3>
+    cuerpo = `<h3>Tapas de los diarios</h3>
       <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${S.tapas.map(t => `<div class="titular"><b>${esc(t.titulo)}</b><small>${esc(t.medio)} · línea ${t.linea}</small></div>`).join("")}</div>
       <h3 style="margin-top:12px">Periodistas que investigan al gobierno</h3>
       ${S.periodistas.map(p => `<div class="barra"><span title="${esc(p.estilo)}">${esc(p.nombre)} <span class="muted small">${esc(p.medio)}</span></span><div class="track"><div class="fill" style="width:${Math.min(100, p.progreso)}%;background:var(--bad)"></div></div><span class="v">${Math.round(Math.min(100, p.progreso))}%</span></div>`).join("")}
@@ -489,21 +508,23 @@ function renderGobierno() {
       <div class="stack">${acc.map(([id, n, d]) => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:6px"><div style="flex:1;min-width:200px"><b>${n}</b><br><span class="small muted">${d}</span></div><button class="sec" data-ext="${id}" ${S.politicaExterior.includes(id) && id !== "islas" ? "disabled" : ""}>Hacer</button></div>`).join("")}</div>`;
   }
   if (UI.tabGob === "leyes") cuerpo = htmlLeyes();
+  if (UI.tabGob === "boletin") cuerpo = htmlBoletin();
   app.innerHTML = `
     <div class="grid gobierno">
       <div class="card" style="grid-column: span 2">
-        <div class="row" style="justify-content:space-between"><h2>Presidencia de ${esc(yo.nombre)}</h2><button id="bTrim">Terminar el mes ▸</button></div>
-        <div class="tabs">${tabs.map(([id, n]) => `<button data-tab="${id}" class="${UI.tabGob === id ? "on" : ""}">${n}</button>`).join("")}</div>
+        ${encabezadoPortal(esc(yo.nombre), '<button id="bTrim">Terminar el mes ▸</button>')}
+        <div class="tabs portal-nav">${tabs.map(([id, n]) => `<button data-tab="${id}" class="${UI.tabGob === id ? "on" : ""}">${n}</button>`).join("")}</div>
         ${cuerpo}
       </div>
       <div class="card col-log">
-        <h2>Noticias</h2>
-        ${S.titulares.slice(0, 2).map(t => `<div class="titular">${esc(t.txt)}<small>${esc(t.medio)} · ${t.sem}</small></div>`).join("")}
+        <h2 class="sala">Sala de prensa</h2>
+        ${S.titulares.slice(0, 3).map(t => `<div class="titular">${esc(t.txt)}<small>${esc(t.medio)} · ${t.sem}</small></div>`).join("")}
         <div class="log">${S.log.map(l => `<div class="${l.tipo}"><span class="t">${l.sem}</span>${esc(l.txt)}</div>`).join("")}</div>
       </div>
     </div>`;
   document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { UI.tabGob = b.dataset.tab; renderGobierno(); });
   bindLeyes(renderGobierno);
+  bindBoletin(renderGobierno);
   document.querySelectorAll("[data-exp]").forEach(b => b.onclick = () => {
     const r = resolverExpediente(+b.dataset.exp, +b.dataset.op);
     if (r.msg || (r.pasos && r.pasos.length)) {
@@ -543,8 +564,8 @@ function renderGobierno() {
   const sp = $("#slPauta"); if (sp) sp.onchange = e => { setPauta(+e.target.value); renderGobierno(); };
   const bcf = $("#bConf"); if (bcf) bcf.onclick = () => mostrarRes("Conferencia de prensa", conferenciaPrensa());
   const bcd = $("#bCadena"); if (bcd) bcd.onclick = () => mostrarRes("Cadena nacional", cadenaNacional());
-  document.querySelectorAll("[data-neg]").forEach(b => b.onclick = () => { negociarBloque(b.dataset.neg); renderGobierno(); });
-  document.querySelectorAll("[data-atn]").forEach(b => b.onclick = () => { enviarATN(b.dataset.atn); renderGobierno(); });
+  document.querySelectorAll("[data-neg]").forEach(b => b.onclick = () => mostrarRes("Congreso", negociarBloque(b.dataset.neg)));
+  document.querySelectorAll("[data-atn]").forEach(b => b.onclick = () => mostrarRes("Gobernadores", enviarATN(b.dataset.atn)));
   document.querySelectorAll("[data-ext]").forEach(b => b.onclick = () => {
     const r = accionExterior(b.dataset.ext);
     modal(`<h2>Relaciones exteriores</h2><p>${esc(r.msg)}</p>${(r.pasos || []).map(tablaVotacion).join("")}<div class="row" style="justify-content:flex-end"><button id="mOk">OK</button></div>`, r.ok ? "info" : "aviso");
@@ -605,7 +626,7 @@ function renderFin(completo) {
   let html;
   if (completo) {
     const p = puntajeFinal();
-    const juicio = p > 160 ? "Pasás a la historia como un gran presidente. Te piden que vuelvas." : p > 110 ? "Un gobierno aceptable. Terminás el mandato con la frente alta." : p > 70 ? "Terminaste el mandato, que en Valdora ya es mucho." : "Terminaste, pero dejás un país en ruinas.";
+    const juicio = p > 160 ? "Pasás a la historia como un gran presidente. Te piden que vuelvas." : p > 110 ? "Un gobierno aceptable. Terminás el mandato con la frente alta." : p > 70 ? "Terminaste el mandato, que en la Argentina ya es mucho." : "Terminaste, pero dejás un país en ruinas.";
     const I = S.ind, H = S.hist[0];
     html = `<h1>Fin del mandato</h1><p>${juicio}</p><h2>Puntaje: ${p}</h2>
       <table class="tally"><tr><th>Indicador</th><th>Al asumir</th><th>Al irte</th></tr>
@@ -615,17 +636,12 @@ function renderFin(completo) {
     if (S.resultadoGeneral) html += `<h3>Elección general</h3>${barras(S.resultadoGeneral.nac)}`;
   }
   app.innerHTML = `<div class="portada card stack" style="text-align:left">${html}<div class="row" style="justify-content:center;margin-top:16px"><button id="bOtra">Jugar otra vez</button></div></div>`;
-  try { localStorage.removeItem("valdora_partida"); } catch (e) {}
+  borrarPartidaEnCurso();
   $("#bOtra").onclick = () => { UI.cfg = null; renderCrear(); };
 }
 
 // ---------- Botones globales ----------
-$("#btnGuardar").onclick = () => {
-  if (!S) return;
-  const ok = guardar();
-  modal(`<p>${ok ? "Partida guardada en este navegador." : "No se pudo guardar (el navegador bloquea el almacenamiento)."}</p><div class="row" style="justify-content:flex-end"><button id="mOk">OK</button></div>`, ok ? "bueno" : "aviso");
-  $("#mOk").onclick = cerrarModal;
-};
+$("#btnGuardar").onclick = () => panelPartidas();
 $("#btnMenu").onclick = () => {
   modal(`<h2>Menú</h2><div class="opciones">
     <button class="opcion" id="mAyuda"><b>Cómo se juega</b></button>
@@ -637,12 +653,12 @@ $("#btnMenu").onclick = () => {
 };
 function ayuda() {
   modal(`<h2>Cómo se juega</h2>
-    <p><b>Campaña.</b> La campaña dura seis meses y cada mes tenés 10 acciones. Elegí una provincia en el mapa para recorridas y actos; los spots, redes y entrevistas son nacionales. Gran Ribera tiene el 38% del padrón.</p>
+    <p><b>Campaña.</b> La campaña dura seis meses y cada mes tenés 6 acciones. Elegí una provincia en el mapa para recorridas y actos; los spots, redes y entrevistas son nacionales. La provincia de Buenos Aires tiene el 38% del padrón y la Ciudad de Buenos Aires, el 7%.</p>
     <p><b>Interna.</b> Si fundás partido, juntá avales antes de fin del segundo mes. Si te sumás a uno, ganá la interna: PASO (fin del mes 2), cerrada (comités) o el dedo del líder (lealtad).</p>
     <p><b>Plata y riesgo.</b> Los aportes dan fondos pero suman riesgo de escándalo. Los pactos con sectores te comprometen después.</p>
     <p><b>Elección.</b> Ganás en primera vuelta con 45%, o con 40% y 10 puntos de ventaja. Si no, balotaje.</p>
     <p><b>Gobernador e intendente.</b> La campaña es por departamentos o barrios y gana el más votado, sin balotaje. Al gobernar no controlás la moneda: dependés de la coparticipación, de la Nación (ATN, fuerzas federales) y de tu Legislatura o Concejo. Si la caja queda en rojo unos nueve meses, te intervienen.</p>
-    <p><b>Diputado y jefe de bloque.</b> Encabezás la lista de Gran Ribera (35 bancas por D'Hondt, umbral 3%). En la Cámara fijás la línea de tu bloque en cada votación, cuidás la disciplina, negociás con la Casa Rosada y los gobernadores y empujás proyectos propios, que necesitan dictamen de comisión o dos tercios en sesión especial.</p>
+    <p><b>Diputado y jefe de bloque.</b> Encabezás la lista de la provincia de Buenos Aires (35 bancas por D'Hondt, umbral 3%). En la Cámara fijás la línea de tu bloque en cada votación, cuidás la disciplina, negociás con la Casa Rosada y los gobernadores y empujás proyectos propios, que necesitan dictamen de comisión o dos tercios en sesión especial.</p>
     <p><b>Despacho.</b> Cada mes llegan expedientes con dilemas reales: paros, tarifas, deuda, provincias quebradas, vacantes en la Corte. Elegí con cuidado: hay consecuencias que llegan meses después, y los factores de poder (CGT, campo, mercados, Iglesia, fuerzas, prensa, Corte, el Fondo) reaccionan si los maltratás.</p>
     <p><b>Gobierno.</b> Cada turno es un mes (48 en total). Ajustá el presupuesto, tomá una medida por mes por resolución, decreto, DNU o ley, negociá con bloques y gobernadores. Si la tensión social supera 85 dos trimestres seguidos, caés. Si la legitimidad se derrumba, puede haber juicio político.</p>
     <div class="row" style="justify-content:flex-end"><button id="mOk">Entendido</button></div>`);

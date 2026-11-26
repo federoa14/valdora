@@ -88,7 +88,7 @@ const LEYES_CATALOGO = [
   // ---------- Educación y ciencia ----------
   L("educacion", "financiamientoEdu", "Financiamiento educativo: 6% del PBI", 35, 6, { deficit: 0.4 }, { jovenes: 0.2, estatales: 0.2 }, "Obliga a Nación y provincias a invertir el 6% del PBI en educación.", { costo: 0.4, provincial: true }),
   L("educacion", "financiamientoU2", "Financiamiento universitario", 30, 7, { deficit: 0.2 }, { jovenes: 0.25, estatales: 0.15 }, "Actualiza por inflación el presupuesto de las universidades nacionales.", { costo: 0.2 }),
-  L("educacion", "aranceles", "Aranceles para estudiantes extranjeros", 68, 2, { deficit: -0.03 }, { media: 0.05, jovenes: -0.05 }, "Las universidades cobran a quienes no residen en Valdora.", { judicial: 0.1 }),
+  L("educacion", "aranceles", "Aranceles para estudiantes extranjeros", 68, 2, { deficit: -0.03 }, { media: 0.05, jovenes: -0.05 }, "Las universidades cobran a quienes no residen en el país.", { judicial: 0.1 }),
   L("educacion", "libertadEducativa", "Libertad educativa y vouchers", 80, -3, { deficit: -0.1 }, { media: 0.1, estatales: -0.25 }, "Financia a las familias en lugar de a las escuelas, que compiten por los alumnos.", { act: { cgt: -6, iglesia: 4 } }),
   L("educacion", "ciencia", "Financiamiento de la ciencia", 38, 4, { deficit: 0.1, crecimiento: 0.05 }, { jovenes: 0.1 }, "Lleva la inversión en ciencia al 1% del PBI en diez años.", { costo: 0.1 }),
   L("educacion", "esenciales", "Educación como servicio esencial", 70, 2, { tension: 2 }, { media: 0.15, estatales: -0.2 }, "Prohíbe los paros docentes que dejen las escuelas cerradas más de tres días.", { act: { cgt: -8 }, judicial: 0.2 }),

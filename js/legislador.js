@@ -1,13 +1,13 @@
 // =============================================================
 //  VALDORA - Escala legislador: diputado nacional y jefe de bloque
-//  La campaña es por la lista de Gran Ribera (D'Hondt). En la Cámara
+//  La campaña es por la lista de Buenos Aires (D'Hondt). En la Cámara
 //  conducís tu bloque: posición en cada votación, disciplina,
 //  negociaciones con la Casa Rosada y los gobernadores, proyectos
 //  propios, interpelaciones, juicio político y sesiones especiales.
 // =============================================================
 
 function esLegislador() { return !!(S && S.cfg && S.cfg.objetivo === "legislador"); }
-const BANCAS_GR = 35; // Gran Ribera renueva 35 diputados
+const BANCAS_GR = 35; // Buenos Aires renueva 35 de sus 70 diputados
 
 const _eleccionGeneralLeg = eleccionGeneral;
 eleccionGeneral = function () {
@@ -25,13 +25,13 @@ eleccionGeneral = function () {
   }).join(" · ");
   const mias = bancas.yo || 0;
   if (!mias) {
-    S.perdio = true; S.motivoDerrota = `Diputados por Gran Ribera: ${texto}. Tu lista no llegó al umbral del 3% o no alcanzó para una banca.`;
+    S.perdio = true; S.motivoDerrota = `Diputados por Buenos Aires: ${texto}. Tu lista no llegó al umbral del 3% o no alcanzó para una banca.`;
     log(S.motivoDerrota, "malo");
     return { titulo: "Resultado electoral", texto: S.motivoDerrota, tipo: "malo" };
   }
-  log(`Diputados por Gran Ribera: ${texto}. Encabezás la lista: sos diputado nacional.`, "bueno");
+  log(`Diputados por Buenos Aires: ${texto}. Encabezás la lista: sos diputado nacional.`, "bueno");
   iniciarLegislatura(mias);
-  return { titulo: "¡Entraste a la Cámara!", texto: `Diputados por Gran Ribera (35 bancas, sistema D'Hondt, umbral 3%): ${texto}. Tu lista metió ${mias} ${mias === 1 ? "banca" : "bancas"} y tus compañeros te eligen presidente del bloque.`, tipo: "bueno" };
+  return { titulo: "¡Entraste a la Cámara!", texto: `Diputados por Buenos Aires (35 bancas, sistema D'Hondt, umbral 3%): ${texto}. Tu lista metió ${mias} ${mias === 1 ? "banca" : "bancas"} y tus compañeros te eligen presidente del bloque.`, tipo: "bueno" };
 };
 
 // ---------- Inicio del mandato ----------
@@ -345,7 +345,7 @@ function accionLeg(tipo, arg) {
       if (S.oficialismo) { S.accionesLeg++; return { msg: "Tu bloque no va a acusar a su propio presidente.", tipo: "aviso" }; }
       const apoyo = Object.entries(S.cam).filter(([k]) => k !== S.presNac.partido).reduce((a, [k, n]) => a + (k === yo.partido ? n * L.disciplina / 100 : n * R.clamp(0.2 + (S.relBloques[k] || 0) / 120 + (50 - S.presNac.imagen) / 100, 0, 1)), 0);
       const nec = Math.ceil(257 * 2 / 3);
-      if (apoyo >= nec) { S.presNac.imagen -= 15; aplicarLeg({ influencia: 15, relPres: -40 }); msg = `La Cámara acusó al presidente ante el Senado con ${Math.round(apoyo)} votos (se necesitaban ${nec}). Valdora entra en crisis política.`; t = "aviso"; }
+      if (apoyo >= nec) { S.presNac.imagen -= 15; aplicarLeg({ influencia: 15, relPres: -40 }); msg = `La Cámara acusó al presidente ante el Senado con ${Math.round(apoyo)} votos (se necesitaban ${nec}). El país entra en crisis política.`; t = "aviso"; }
       else { aplicarLeg({ imagen: -4, influencia: -4, relPres: -20 }); msg = `El pedido de juicio político juntó ${Math.round(apoyo)} votos de los ${nec} necesarios. Te acusan de golpista.`; t = "malo"; }
       break;
     }
