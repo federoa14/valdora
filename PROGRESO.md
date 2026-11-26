@@ -34,7 +34,7 @@ Documento de diseño: https://claude.ai/artifact/2W7cuhDDo71UUFCJoaj9xx
 - [x] Eras históricas elegibles (1983, 1989, 2001, 2015, hoy) con planes de estabilización (Austral, Convertibilidad, Jefes de Hogar, pesificación)
 - [x] Reemplazar nombres parecidos a personas o medios reales por nombres ficticios
 - [x] Probar, balancear y republicar v0.3
-- [ ] Subir a repositorio de GitHub (Federico crea el repo vacío, Claude lo sube)
+- [x] Subido a GitHub: https://github.com/federoa14/valdora · juego online: https://federoa14.github.io/valdora/
 
 ## Etapa 5: v0.6
 - [x] Avance mes a mes en todos los cargos (48 meses de mandato, campaña de 6 meses) con economía recalibrada y partidas guardadas viejas convertidas
