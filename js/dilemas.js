@@ -15,7 +15,7 @@ const ACTORES = [
   { id: "fuerzas",    nombre: "Fuerzas de seguridad",   ideo: 65, contra: "Acuartelamiento por salarios",        ef: { inseguridad: 6, legitimidad: -3 },                pro: "Operativos exitosos",                   efPro: { inseguridad: -3 } },
   { id: "prensa",     nombre: "Grandes medios",         ideo: 60, contra: "Campaña de tapas en contra",          ef: { imagen: -3 },                                     pro: "Cobertura amable",                      efPro: { imagen: 2 } },
   { id: "corte",      nombre: "Corte Suprema",          ideo: 55, contra: "Fallos contra el gobierno",           ef: { legitimidad: -3 },                                pro: "La Corte convalida tus decisiones",     efPro: { legitimidad: 2 } },
-  { id: "fmi",        nombre: "Fondo Monetario Internacional", ideo: 78, contra: "El Fondo endurece su postura",  ef: { reservas: -1000, inflacion: 0.3 },                pro: "El Fondo flexibiliza metas",            efPro: { reservas: 1000 } },
+  { id: "fmi",        nombre: "Fondo Monetario Mundial", ideo: 78, contra: "El Fondo endurece su postura",  ef: { reservas: -1000, inflacion: 0.3 },                pro: "El Fondo flexibiliza metas",            efPro: { reservas: 1000 } },
   { id: "norte",      nombre: "Federación del Norte",   ideo: 70, contra: "Presión diplomática y sanciones",     ef: { reservas: -1500, crecimiento: -0.2 },             pro: "Apoyo en organismos de crédito",        efPro: { reservas: 1500 } },
 ];
 

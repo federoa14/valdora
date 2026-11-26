@@ -5,7 +5,7 @@
 //  Los organismos y su numeración son ficticios.
 // =============================================================
 
-const ANIO_BASE = { hoy: 2027, "1983": 1983, "1989": 1989, "2001": 1999 };
+const ANIO_BASE = { hoy: 2027, "1983": 1983, "1989": 1989, "2001": 2001, "2015": 2015 };
 function anioBase() { return ANIO_BASE[(S && S.cfg && S.cfg.era) || "hoy"] || 2027; }
 // el mandato arranca en diciembre (como en la Argentina desde 1983): mes 1 = diciembre del año base
 function anioDeMes(m) { return anioBase() + Math.floor(((m || 1) - 1 + 11) / 12); }

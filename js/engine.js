@@ -833,48 +833,56 @@ function accionExterior(tipo) {
 }
 
 // --- economía trimestral ---
+// otros módulos (economía, mundo, gabinete, conflictos) suman ajustes a los objetivos del mes
+const EXTRA_ECO = [];
+function extraEco() {
+  const X = {};
+  for (const fn of EXTRA_ECO) { try { const o = fn() || {}; for (const k in o) X[k] = (X[k] || 0) + o[k]; } catch (e) { if (typeof console !== "undefined") console.error(e); } }
+  return X;
+}
 function simularEconomia() {
   const I = S.ind, yo = S.jugador, f = pasoT();
+  const X = extraEco(); S._extra = X;
   const A = S.ancla || { inflacion: 2, desempleo: 7, pobreza: 30 };
   const inflPrev = I.inflacion;
   const gasto = AREAS.reduce((a, ar) => a + ar.base * S.presupuesto[ar.id] / 100, 0); // pp del PBI
   const recaudacion = S.impuestos / 100 * 22; // 22% del PBI de presión base
-  const deficitObj = 3 + gasto - recaudacion + (S.medidasActivas.length ? 0 : 0);
+  const deficitObj = 3 + gasto - recaudacion + (X.deficit || 0);
   // el déficit "estructural" se mueve hacia su objetivo + efectos de medidas
   I.deficit = suav(I.deficit, deficitObj + (I.deficit - 3) * 0.6, 0.6);
   // inflación mensual
   const emision = Math.max(0, I.deficit - (S.fmi && S.fmi.activo ? 2 : 1)) * 0.55;
   const presionCambiaria = I.reservas < 8000 ? 1.5 : I.reservas < 15000 ? 0.5 : 0;
-  const objInfl = 1.8 + emision + presionCambiaria + (S.impuestos > 5 ? 0.2 : 0) + (S.medidasActivas.includes("precios") ? -0.3 : 0);
+  const objInfl = 1.8 + emision + presionCambiaria + (S.impuestos > 5 ? 0.2 : 0) + (S.medidasActivas.includes("precios") ? -0.3 : 0) + (X.inflacion || 0);
   I.inflacion = Math.max(0.2, suav(I.inflacion, objInfl, 0.75) + ruido(0.35));
   // crecimiento
   const confianza = (I.legitimidad - 50) / 50 + (S.alineamiento !== "neutral" ? 0.2 : 0) - (I.inflacion > 6 ? 1 : 0);
   const infra = S.presupuesto.infra / 100 * 1.5 + S.presupuesto.produccion / 100 + S.presupuesto.ciencia / 200;
   const rebote = S.desempleoInicial ? Math.max(0, I.desempleo - 8) * 0.25 : 0;
-  const objCrec = 1.5 + rebote + confianza + infra - (S.impuestos > 0 ? S.impuestos * 0.05 : S.impuestos * 0.03) - Math.max(0, I.inflacion - 3) * 0.4 - (I.tension > 70 ? 1.5 : 0);
+  const objCrec = 1.5 + rebote + confianza + infra - (S.impuestos > 0 ? S.impuestos * 0.05 : S.impuestos * 0.03) - Math.max(0, I.inflacion - 3) * 0.4 - (I.tension > 70 ? 1.5 : 0) + (X.crecimiento || 0);
   I.crecimiento = suav(I.crecimiento, objCrec, 0.55) + ruido(0.4);
   // empleo y pobreza
-  I.desempleo = R.clamp(I.desempleo + (-(I.crecimiento - 1.5) * 0.25) * f + ruido(0.1), 3, 30);
+  I.desempleo = R.clamp(I.desempleo + (-(I.crecimiento - 1.5) * 0.25 + (X.desempleo || 0)) * f + ruido(0.1), 3, 30);
   const social = S.presupuesto.social / 100;
-  I.pobreza = R.clamp(I.pobreza + (Math.min(I.inflacion - 3, 8) * 0.7 + (I.desempleo - A.desempleo - 1) * 0.3 - social * 3 - (I.crecimiento - 1.5) * 0.4 + (A.pobreza + 6 - I.pobreza) * 0.06) * f, 10, 70);
+  I.pobreza = R.clamp(I.pobreza + (Math.min(I.inflacion - 3, 8) * 0.7 + (I.desempleo - A.desempleo - 1) * 0.3 - social * 3 - (I.crecimiento - 1.5) * 0.4 + (A.pobreza + 6 - I.pobreza) * 0.06 + (X.pobreza || 0)) * f, 10, 70);
   // reservas
   const export_ = 3000 + (I.crecimiento > 0 ? 500 : 0) + (S.alineamiento === "este" ? 300 : 0);
   const pagosDeuda = 3200 + I.deuda * 22;
   const fuga = Math.max(0, Math.min(I.inflacion - 3, 6) * 600 + (50 - I.legitimidad) * 40);
   const K = S.escalaRes || 1;
-  I.reservas = Math.max(0, I.reservas + ((export_ - pagosDeuda + 2500 - fuga) * f + ruido(500)) * K);
+  I.reservas = Math.max(0, I.reservas + ((export_ - pagosDeuda + 2500 - fuga + (X.reservas || 0) * 3) * f + ruido(500)) * K);
   // deuda
-  I.deuda = R.clamp(I.deuda + (I.deficit * 0.25 - I.crecimiento * 0.2 + (I.reservas < 5000 ? 2 : 0)) * f, 20, 200);
+  I.deuda = R.clamp(I.deuda + (I.deficit * 0.25 - I.crecimiento * 0.2 + (I.reservas < 5000 ? 2 : 0) + (X.deuda || 0)) * f, 20, 200);
   // inseguridad
-  I.inseguridad = R.clamp(I.inseguridad + (-S.presupuesto.seguridad / 100 * 4 + (I.pobreza - 38) * 0.15) * f + ruido(1), 10, 100);
+  I.inseguridad = R.clamp(I.inseguridad + (-S.presupuesto.seguridad / 100 * 4 + (I.pobreza - 38) * 0.15 + (X.inseguridad || 0)) * f + ruido(1), 10, 100);
   // tensión social
   const ajusteSocial = Math.min(0, S.presupuesto.social) + Math.min(0, S.presupuesto.salud) / 2 + Math.min(0, S.presupuesto.educacion) / 2;
   const contencion = (S.pactos.includes("sindicatos") ? 3 : 0) + (S.pactos.includes("movimientos") ? 3 : 0);
-  const objTension = 24 + Math.min((I.inflacion - A.inflacion) * 5, 40) + (I.desempleo - A.desempleo) * 2 + (I.pobreza - A.pobreza) * 0.8 - ajusteSocial * 0.3 - contencion - Math.max(0, S.presupuesto.social) * 0.15;
+  const objTension = 24 + Math.min((I.inflacion - A.inflacion) * 5, 40) + (I.desempleo - A.desempleo) * 2 + (I.pobreza - A.pobreza) * 0.8 - ajusteSocial * 0.3 - contencion - Math.max(0, S.presupuesto.social) * 0.15 + (X.tension || 0);
   I.tension = R.clamp(suav(I.tension, objTension, 0.6) + ruido(2), 0, 100);
   // imagen
   const objImagen = 55 - Math.min((I.inflacion - A.inflacion - 1) * 4, 35) + (I.crecimiento - 1) * 2.5 - (I.desempleo - A.desempleo - 1) * 1.2 - (I.inseguridad - 60) * 0.25 - Math.max(0, I.tension - 50) * 0.4 + (yo.carisma - 5) * 1.5 + (yo.gestion - 5) - S.trimestre * 0.7 - (S.causas || 0) * 3;
-  I.imagen = R.clamp(suav(I.imagen, objImagen, 0.65), 3, 95);
+  I.imagen = R.clamp(suav(I.imagen, objImagen + (X.imagen || 0), 0.65), 3, 95);
   // legitimidad: se recupera lento, baja con DNU y escándalos
   I.legitimidad = R.clamp(I.legitimidad + (1 + (yo.gestion - 5) * 0.3 - (I.tension > 70 ? 3 : 0)) * f, 0, 100);
   // los gobernadores enfrían su relación con el tiempo

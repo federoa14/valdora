@@ -28,7 +28,7 @@ renderEstado = function () {
   $("#estado").innerHTML = `
     <span class="pill">${etM} de 48</span>
     <span class="pill">Caja <b>${Math.round(S.ind.caja)}</b></span>
-    <span class="pill">Imagen <b>${Math.round(S.ind.imagen)}%</b></span>
+    <span class="pill">Imagen <b>≈${Math.round(imagenPublicada())}%</b></span>
     <span class="pill">Tensión <b>${Math.round(S.ind.tension)}</b></span>
     <span class="pill" title="Casilleros de agenda del mes">Agenda <b>${agendaDisponible()}</b>/${agendaMax()}</span>`;
 };
@@ -65,7 +65,7 @@ function renderGobiernoLocal() {
   const I = S.ind, yo = S.jugador, gob = S.cfg.objetivo === "gobernador";
   UI.tabLoc = UI.tabLoc || "despacho";
   const pend = S.expedientesLocal.filter(e => !e.resuelto).length;
-  const tabs = [["despacho", `Despacho${pend ? " (" + pend + ")" : ""}`], ["resumen", "Estadísticas"], ["presupuesto", "Presupuesto"], ["leg", gob ? "Legislatura" : "Concejo Deliberante"], ["leyes", gob ? "Leyes" : "Ordenanzas"], ["boletin", "Boletín Oficial"], ["nacion", gob ? "Relación con la Nación" : "Provincia y Nación"]];
+  const tabs = [["despacho", `Despacho${pend ? " (" + pend + ")" : ""}`], ["resumen", "Estadísticas"], ["presupuesto", "Presupuesto"], ["leg", gob ? "Legislatura" : "Concejo Deliberante"], ["leyes", gob ? "Leyes" : "Ordenanzas"], ["boletin", "Boletín Oficial"], ["conflictos", `Conflictos${conflictosActivos().length ? " (" + conflictosActivos().length + ")" : ""}`], ["nacion", gob ? "Relación con la Nación" : "Provincia y Nación"]];
   const P = S.presidente;
   let cuerpo = "";
   if (UI.tabLoc === "despacho") {
@@ -86,7 +86,7 @@ function renderGobiernoLocal() {
       <div class="tension"><div class="marca-t" style="left:calc(${I.tension}% - 2px)"></div></div>
       <p class="small muted" style="margin-top:8px">Inflación nacional: ${fmt(S.inflNacional)}% mensual (no la controlás, pero te licúa la coparticipación). ${S.sueldosImpagos ? `Meses con sueldos atrasados: ${Math.round(S.sueldosImpagos * 3)}.` : ""}${S.adhesiones.length ? ` Adhesiones a leyes nacionales: ${S.adhesiones.length}.` : ""}${S.flagsLocal.reeleccion ? " Tenés reelección habilitada." : ""}</p>
       <h3 style="margin-top:14px">Evolución</h3>
-      ${grafico([{ k: "imagen", n: "Imagen", c: "#5b9be6", min: 0, max: 100 }, { k: "tension", n: "Tensión social", c: "#ef6457", min: 0, max: 100 }, { k: "servicios", n: "Servicios", c: "#2e8b57", min: 0, max: 100 }])}`;
+      ${htmlGraficos()}`;
   } else if (UI.tabLoc === "presupuesto") {
     cuerpo = `<p class="small muted">Subí o bajá cada partida respecto del presupuesto heredado. Gastar más mejora servicios y baja la tensión, pero vacía la caja; si la caja queda en rojo, no pagás sueldos. ${gob ? "Nueve meses sin pagar sueldos pueden terminar en intervención federal." : ""}</p>
       ${AREAS_LOCAL[S.cfg.objetivo].map(([id, n]) => `<div class="slider-row"><span>${n}</span><input type="range" min="-40" max="40" step="5" value="${S.presLocal[id]}" data-larea="${id}"><b>${S.presLocal[id] > 0 ? "+" : ""}${S.presLocal[id]}%</b></div>`).join("")}
@@ -113,6 +113,7 @@ function renderGobiernoLocal() {
   }
   if (UI.tabLoc === "leyes") cuerpo = htmlLeyes();
   if (UI.tabLoc === "boletin") cuerpo = htmlBoletin();
+  if (UI.tabLoc === "conflictos") cuerpo = htmlConflictos();
   app.innerHTML = `
     <div class="card stack">
       ${encabezadoPortal(esc(yo.nombre), '<button id="lFin">Terminar el mes ▸</button>')}
@@ -122,6 +123,7 @@ function renderGobiernoLocal() {
     <div class="card"><h3>Registro</h3><div class="log">${S.log.slice(0, 10).map(l => `<div class="${l.tipo}"><span class="t">${l.sem}</span>${esc(l.txt)}</div>`).join("")}</div></div>`;
   document.querySelectorAll("[data-ltab]").forEach(b => b.onclick = () => { UI.tabLoc = b.dataset.ltab; renderGobiernoLocal(); });
   bindBoletin(renderGobiernoLocal);
+  bindGestion(renderGobiernoLocal);
   bindLeyes(renderGobiernoLocal);
   document.querySelectorAll("[data-lexp]").forEach(b => b.onclick = () => {
     const r = resolverExpLocal(+b.dataset.lexp, +b.dataset.lop);

@@ -46,3 +46,12 @@ function negociarLegLocal() {
   S.agenda--;
   return { ok: true };
 }
+
+// ayuda para los módulos nuevos: ejecuta fn solo si queda agenda; si falla, devuelve el casillero
+function conCasillero(c, fn) {
+  if (agendaDisponible() < c) return { ok: false, msg: `No te queda agenda este mes: esto requiere ${c} ${c === 1 ? "casillero" : "casilleros"} y tenés ${agendaDisponible()}.`, tipo: "aviso", pasos: [] };
+  S.agenda -= c;
+  const r = fn();
+  if (r && r.ok === false) S.agenda += c;
+  return r;
+}

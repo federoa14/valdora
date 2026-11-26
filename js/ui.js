@@ -46,7 +46,7 @@ function renderEstado() {
     const etM = etiquetaMes(S.mes || 1);
     el.innerHTML = `
       <span class="pill">${etM} de 48</span>
-      <span class="pill">Imagen <b>${Math.round(S.ind.imagen)}%</b></span>
+      <span class="pill">Imagen <b>≈${Math.round(imagenPublicada())}%</b></span>
       <span class="pill">Inflación <b>${fmt(S.ind.inflacion)}%</b> mensual</span>
       <span class="pill">Tensión <b>${Math.round(S.ind.tension)}</b></span>
       <span class="pill" title="Casilleros de agenda: cada acción de gobierno fuera del despacho ocupa uno; una medida grande ocupa dos">Agenda <b>${agendaDisponible()}</b>/${agendaMax()}</span>`;
@@ -376,7 +376,7 @@ function renderGobierno() {
   renderEstado();
   const I = S.ind, yo = S.jugador;
   const pendExp = (S.expedientes || []).filter(e => !e.resuelto).length;
-  const tabs = [["despacho", `Despacho${pendExp ? " (" + pendExp + ")" : ""}`], ["resumen", "Estadísticas"], ["poder", "Gabinete y factores de poder"], ["presupuesto", "Presupuesto"], ["medidas", "Medidas"], ["congreso", "Congreso y gobernadores"], ["leyes", `Leyes${(S.leyes && S.leyes.tram.length) ? " (" + S.leyes.tram.length + ")" : ""}`], ["boletin", "Boletín Oficial"], ["justicia", `Justicia${(S.causasJ || []).filter(c => !c.cerrada).length ? " (" + S.causasJ.filter(c => !c.cerrada).length + ")" : ""}`], ["prensa", "Prensa"], ["exterior", "Relaciones exteriores"]];
+  const tabs = [["despacho", `Despacho${pendExp ? " (" + pendExp + ")" : ""}`], ["resumen", "Estadísticas"], ["gabinete", "Jefatura de Gabinete"], ["economia", "Economía"], ["cancilleria", "Cancillería"], ["conflictos", `Conflictos${conflictosActivos().length ? " (" + conflictosActivos().length + ")" : ""}`], ["poder", "Factores de poder"], ["presupuesto", "Presupuesto"], ["medidas", "Medidas"], ["congreso", "Congreso y gobernadores"], ["leyes", `Leyes${(S.leyes && S.leyes.tram.length) ? " (" + S.leyes.tram.length + ")" : ""}`], ["boletin", "Boletín Oficial"], ["justicia", `Justicia${(S.causasJ || []).filter(c => !c.cerrada).length ? " (" + S.causasJ.filter(c => !c.cerrada).length + ")" : ""}`], ["prensa", "Prensa"]];
   const indicadores = [
     ["inflacion", "Inflación mensual", fmt(I.inflacion) + "%", true],
     ["desempleo", "Desempleo", fmt(I.desempleo) + "%", true],
@@ -413,7 +413,8 @@ function renderGobierno() {
       <p class="small muted">Vicepresidente: <b>${esc(S.vice.nombre)}</b>, lealtad ${Math.round(S.vice.lealtad)}/100${S.vice.lealtad < 30 ? " (su sector vota con libertad de acción en el Senado)" : ""}.${S.delegacion > 0 ? ` Facultades delegadas por ${S.delegacion} trimestres más.` : ""}${S.enDefault ? " El país está en default." : ""}</p>
       <h3 style="margin-top:12px">Factores de poder</h3>
       <p class="small muted">Debajo de 25 pasan a la acción en tu contra; arriba de 75 te ayudan. Se mueven con tus decisiones y con la economía.</p>
-      ${ACTORES.map(a => barra(a.nombre, S.actoresRel[a.id])).join("")}`;
+      ${ACTORES.map(a => { const pc = S.percepcion && S.percepcion[a.id]; return pc ? barra(a.nombre, pc.v).replace(`<span class="v">${Math.round(pc.v)}</span>`, `<span class="v">${rango(pc.v, pc.sd * 0.6)}</span>`) : barra(a.nombre, S.actoresRel[a.id]); }).join("")}
+      <p class="small muted">${S.percepcion ? "Son estimaciones de tus asesores, no certezas: con un buen ministro del Interior el margen se achica." : ""}</p>`;
   } else if (UI.tabGob === "resumen") {
     const nivel = I.tension < 30 ? "Calma" : I.tension < 50 ? "Malestar" : I.tension < 70 ? "Conflicto" : I.tension < 85 ? "Crisis" : "Estallido";
     cuerpo = `
@@ -422,8 +423,8 @@ function renderGobierno() {
       <h3 style="margin-top:14px">Tensión social: ${Math.round(I.tension)} (${nivel})</h3>
       <div class="tension"><div class="marca-t" style="left:calc(${I.tension}% - 2px)"></div></div>
       <div class="row small muted" style="justify-content:space-between"><span>Calma</span><span>Malestar</span><span>Conflicto</span><span>Crisis</span><span>Estallido</span></div>
-      <h3 style="margin-top:14px">Evolución</h3>
-      ${grafico([{ k: "imagen", n: "Imagen", c: "#5b9be6", min: 0, max: 100 }, { k: "tension", n: "Tensión social", c: "#ef6457", min: 0, max: 100 }, { k: "pobreza", n: "Pobreza", c: "#e3a63b", min: 0, max: 100 }])}
+      <h3 style="margin-top:14px">Evolución mes a mes</h3>
+      ${htmlGraficos()}
       <p class="small muted">Medidas vigentes: ${S.medidasActivas.length ? S.medidasActivas.map(id => MEDIDAS.find(m => m.id === id).nombre).join(", ") : "ninguna"}. DNU firmados: ${S.dnuCount}. Corte Suprema: ${S.corte.miembros} miembros, ${S.corte.afines} afines.${S.fmi && S.fmi.activo ? ` Programa con el Fondo: meta de déficit ${fmt(S.fmi.metaDeficit)}%.` : ""}</p>`;
   } else if (UI.tabGob === "presupuesto") {
     cuerpo = `
@@ -494,21 +495,22 @@ function renderGobierno() {
       <table class="tally"><tr><th>Provincia</th><th>Partido</th><th>Relación</th><th></th></tr>
       ${gobs.map(([pid, g]) => `<tr><td>${PROVINCIAS.find(p => p.id === pid).nombre}</td><td>${PARTIDOS[g.partido].corto}</td><td>${Math.round(g.relacion)}</td><td><button class="sec" data-atn="${pid}">Enviar ATN</button></td></tr>`).join("")}
       </table>`;
-  } else if (UI.tabGob === "exterior") {
+  } else if (UI.tabGob === "cancilleria") {
     const acc = [
-      ["fmi", "Acuerdo con el Fondo Internacional", "15.000 millones con metas de déficit. Lo aprueba Diputados."],
-      ["acuerdoUCon", "Tratado de libre comercio con la Unión Continental", "Más crecimiento y campo, menos industria. Lo aprueba el Senado."],
       ["brasil", "Cumbre con Brasilia del Sur", "Renovar el acuerdo automotriz del Mercado Común del Sur."],
       ["alinearNorte", "Alinearse con la Federación del Norte", "Inversiones y apoyo en el Fondo."],
       ["alinearEste", "Swap con la República Popular del Este", "Reservas frescas, recelo del Norte."],
       ["aviones", "Comprar aviones de combate", "1.500 millones de reservas."],
       ["islas", "Reclamo por las islas en la Asamblea General", "Soberanía y unidad nacional."],
     ];
-    cuerpo = `<p class="small muted">Alineamiento actual: <b>${S.alineamiento}</b>. Los tratados internacionales los aprueba el Congreso (art. 75 inc. 22).</p>
+    cuerpo = htmlCancilleria() + `<h3 style="margin-top:14px">Otras gestiones</h3><p class="small muted">Alineamiento actual: <b>${S.alineamiento}</b>. Los tratados internacionales los aprueba el Congreso (art. 75 inc. 22).</p>
       <div class="stack">${acc.map(([id, n, d]) => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:6px"><div style="flex:1;min-width:200px"><b>${n}</b><br><span class="small muted">${d}</span></div><button class="sec" data-ext="${id}" ${S.politicaExterior.includes(id) && id !== "islas" ? "disabled" : ""}>Hacer</button></div>`).join("")}</div>`;
   }
   if (UI.tabGob === "leyes") cuerpo = htmlLeyes();
   if (UI.tabGob === "boletin") cuerpo = htmlBoletin();
+  if (UI.tabGob === "gabinete") cuerpo = htmlGabinete();
+  if (UI.tabGob === "economia") cuerpo = htmlEconomia();
+  if (UI.tabGob === "conflictos") cuerpo = htmlConflictos();
   app.innerHTML = `
     <div class="grid gobierno">
       <div class="card" style="grid-column: span 2">
@@ -525,6 +527,7 @@ function renderGobierno() {
   document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { UI.tabGob = b.dataset.tab; renderGobierno(); });
   bindLeyes(renderGobierno);
   bindBoletin(renderGobierno);
+  bindGestion(renderGobierno);
   document.querySelectorAll("[data-exp]").forEach(b => b.onclick = () => {
     const r = resolverExpediente(+b.dataset.exp, +b.dataset.op);
     if (r.msg || (r.pasos && r.pasos.length)) {

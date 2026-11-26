@@ -53,7 +53,16 @@ Documento de diseño: https://claude.ai/artifact/2W7cuhDDo71UUFCJoaj9xx
 - [x] Agenda mensual limitada: campaña 6 acciones, presidente 3 casilleros (4 con gestión alta), gobernador e intendente 2
 - [x] Autoguardado mensual, 3 ranuras, exportar e importar archivo .json
 - [x] Portal de gobierno en azul oscuro: emblema inventado, Boletín Oficial, cuadros estadísticos, ejecución presupuestaria, sala de prensa
-- [ ] Entrega 2: estadísticas con gráficos, Jefatura de Gabinete y ministerios, Economía (banco central ficticio, letras de liquidez, bonos, dólar), Cancillería y organismos internacionales, crisis, petróleo y oro, incertidumbre y presión social
+
+## Etapa 8: v0.9 — Gestión del Estado, economía y mundo
+- [x] Estadísticas con 15 gráficos mes a mes (4 en cargos locales)
+- [x] Jefatura de Gabinete y cinco ministerios con programas, palancas y ministros reemplazables
+- [x] Economía: Banco Central ficticio, regímenes cambiarios, letras, licitaciones y rollover, bonos, default y reestructuración, impuestos por decreto y por ley, salarios y canasta
+- [x] Organismos internacionales de crédito con metas y revisiones
+- [x] Cancillería: países ficticios, tratados, acuerdos reservados, ONF y Consejo de Paz y Seguridad
+- [x] Petróleo, oro, soja y tasas que fluctúan; 14 crisis internacionales y nacionales
+- [x] Incertidumbre (encuestas con error, datos preliminares, percepción de actores, rumores) y conflictos sociales que escalan
+- Nota de balance: 1989 y 2001 quedaron más difíciles (el bot prudente termina el mandato en ~15-20% de las partidas)
 
 ## Próximas ideas
 - [x] Escala legislador / jefe de bloque (v0.5)

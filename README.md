@@ -16,6 +16,11 @@ Juego web por turnos, en español, sobre el mapa real de la República Argentina
 
 9. **La agenda es limitada.** Cada mes tenés pocos casilleros de agenda: 3 como presidente (4 con gestión alta) y 2 como gobernador o intendente. Mandar una ley, tratarla sobre tablas, enviar ATN, negociar con un bloque, una gira o cumbre, una conferencia, una cadena nacional, operar sobre una causa, derogar o gestionar ante la Nación ocupa un casillero; una medida grande ocupa dos. Hay que elegir prioridades.
 10. **El portal de gobierno**: la gestión se ve como un portal oficial (ficticio) en azul oscuro, con Boletín Oficial (decretos, DNU, resoluciones, leyes, vetos, leyes provinciales y ordenanzas numeradas), cuadros estadísticos con su fuente, ejecución presupuestaria y sala de prensa.
+11. **Jefatura de Gabinete y ministerios** (presidente): Seguridad, Defensa, Salud, Educación y Desarrollo Social, cada uno con su ministro (con rasgos, lealtad y riesgo de escándalo), sus indicadores, su presupuesto, programas que se lanzan o se dan de baja por resolución y decisiones de política (protocolo ante cortes, paritaria docente, precios de medicamentos, gestión de los planes).
+12. **Ministerio de Economía y Banco Central** (ficticio): tasa de interés, régimen cambiario (flotación, bandas, crawling peg, cepo o tipo fijo), devaluaciones, venta de reservas, letras de liquidez, licitaciones de deuda con rollover, bonos en pesos y dólares, default y reestructuración, impuestos por decreto (retenciones, percepción al dólar) o por ley, pauta salarial, canasta básica, PBI y resultado fiscal. Créditos de organismos internacionales ficticios (Fondo Monetario Mundial, bancos de desarrollo, swap) con metas, revisiones trimestrales y suspensiones si no cumplís. No busca ser exacto: busca que las decisiones tengan consecuencias creíbles.
+13. **Cancillería**: siete países y bloques ficticios con su relación, visitas oficiales, tratados (algunos los ratifica el Congreso) y acuerdos reservados con uno o más países que no pasan por el Congreso pero pueden filtrarse. La Organización de Naciones Federadas (ONF) vota resoluciones y podés buscar un asiento en su Consejo de Paz y Seguridad o mandar cascos azules.
+14. **Crisis y mercados**: el precio del petróleo, el oro, la soja y la tasa internacional fluctúan mes a mes; aparecen crisis internacionales y nacionales (guerras, tasas del Norte, devaluación del vecino, pandemia, sequía, ciberataques, refugiados) con opciones para manejarlas.
+15. **Incertidumbre y presión social**: la imagen se conoce por encuestas con margen de error y sesgo, el dato de inflación es preliminar, los factores de poder se ven como estimaciones y circulan rumores (algunos falsos). Paros, cortes, lockouts, corridas y reclamos escalan si no los atendés; responder ocupa agenda. Las estadísticas muestran gráficos mes a mes de inflación, pobreza e indigencia, empleo por sector, dólar, reservas, riesgo país, salario real, petróleo y oro.
 
 ## Guardar la partida
 
@@ -79,6 +84,12 @@ El repositorio ya trae el flujo `.github/workflows/pages.yml`: cada vez que se s
 | `js/agenda.js` | Agenda mensual limitada en todos los cargos |
 | `js/portal.js` | Boletín Oficial, estadísticas oficiales y ejecución presupuestaria |
 | `js/guardado.js` | Autoguardado, ranuras y exportar/importar |
+| `js/mundo.js` | Precios internacionales, países ficticios, la ONF y las crisis |
+| `js/economia.js` | Banco Central, dólar, deuda, impuestos y organismos de crédito |
+| `js/gabinete.js` | Jefatura de Gabinete y ministerios |
+| `js/cancilleria.js` | Tratados, acuerdos reservados y votaciones en la ONF |
+| `js/social.js` | Conflictos sociales, encuestas, datos con demora y rumores |
+| `js/ui_gestion.js` | Pantallas de gabinete, economía, cancillería, conflictos y gráficos |
 | `js/ui_portal.js` | Emblema, encabezado del portal, Boletín Oficial y cuadros |
 | `js/ui_guardado.js` | Panel de partidas |
 | `js/ui.js` | Interfaz: pantallas, mapa, hemiciclos, gráficos |
