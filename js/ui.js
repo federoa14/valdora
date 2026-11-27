@@ -86,8 +86,8 @@ function renderCrear() {
   const atr = (k, n, d) => `<div class="attr"><span title="${d}">${n}</span><input type="range" min="1" max="10" value="${c[k]}" data-attr="${k}"><b>${c[k]}</b></div>`;
   const objetivos = [
     ["presidente", "Presidente", "Ejecutivo nacional. Disponible en esta versión."],
-    ["gobernador", "Gobernador", "Una provincia: Legislatura, coparticipación, policía y la Nación."],
-    ["intendente", "Intendente", "Un municipio real (La Matanza, La Plata, Córdoba, Mendoza…): Concejo Deliberante, tasas, basura, baches y barrios."],
+    ["gobernador", "Gobernador", "Elegí entre las 24 provincias: cada una con su Legislatura (una o dos cámaras), su coparticipación, su deuda y sus conflictos."],
+    ["intendente", "Intendente", "Elegí entre 8 municipios reales (La Matanza, La Plata, Córdoba, Mendoza…), cada uno con su Concejo Deliberante, su caja y sus barrios."],
     ["legislador", "Diputado nacional, jefe de bloque", "Lista por la provincia de Buenos Aires. En la Cámara conducís tu bloque: votos, negociaciones, proyectos propios."],
   ];
   const partidos = ["MNJ", "UR", "FC", "LY", "FT"];
@@ -121,15 +121,7 @@ function renderCrear() {
           ${objetivos.map(([id, n, d]) => `<div class="opcion ${c.objetivo === id ? "sel" : ""} " data-obj="${id}"><b>${n}</b><span class="small muted">${d}</span></div>`).join("")}
         </div>
       </div>
-      ${c.objetivo === "gobernador" ? `<div class="card stack"><h2>Provincia</h2>
-        <div class="opciones" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
-        </div>
-        <select id="iProvJ" style="max-width:420px">${Object.entries(PROVINCIAS_JUGABLES).sort((a, b) => a[1].nombre.localeCompare(b[1].nombre)).map(([id, P]) => `<option value="${id}" ${(c.provincia || "buenosaires") === id ? "selected" : ""}>${esc(P.nombre)}</option>`).join("")}</select>
-        <p class="small muted">${(() => { const P = PROVINCIAS_JUGABLES[c.provincia || "buenosaires"]; return `${P.nDeptos} departamentos${c.provincia === "buenosaires" || !c.provincia ? " (en la campaña se agrupan en 8 secciones electorales)" : ""} · Legislatura de ${P.bancas} bancas.`; })()}</p></div>` : ""}
-      ${c.objetivo === "intendente" ? `<div class="card stack"><h2>Municipio</h2>
-        <div class="opciones" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
-          ${CIUDADES_AR.map(C => `<div class="opcion ${(c.ciudad || "lamatanza") === C.id ? "sel" : ""}" data-ciudad="${C.id}"><b>${esc(C.nombre)}</b><span class="small muted">${esc(C.provincia)} · Concejo de ${C.bancas} bancas · ${C.barrios.length} barrios o localidades</span></div>`).join("")}
-        </div></div>` : ""}
+      ${c.objetivo === "gobernador" || c.objetivo === "intendente" ? htmlSelectorTerritorio(c) : ""}
       <div class="card stack">
         <h2>4. Tu camino</h2>
         <div class="opciones" style="grid-template-columns:1fr 1fr">
@@ -158,8 +150,7 @@ function renderCrear() {
   document.querySelectorAll("[data-attr]").forEach(el => el.oninput = e => { c[el.dataset.attr] = +e.target.value; renderCrear(); });
   document.querySelectorAll("[data-era]").forEach(el => el.onclick = () => { c.era = el.dataset.era; renderCrear(); });
   document.querySelectorAll("[data-obj]").forEach(el => el.onclick = () => { c.objetivo = el.dataset.obj; renderCrear(); });
-  const pj = $("#iProvJ"); if (pj) pj.onchange = () => { c.provincia = pj.value; renderCrear(); };
-  document.querySelectorAll("[data-ciudad]").forEach(el => el.onclick = () => { c.ciudad = el.dataset.ciudad; renderCrear(); });
+  if (c.objetivo === "gobernador" || c.objetivo === "intendente") bindSelectorTerritorio(c, renderCrear);
   document.querySelectorAll("[data-camino]").forEach(el => el.onclick = () => { c.camino = el.dataset.camino; renderCrear(); });
   document.querySelectorAll("[data-partido]").forEach(el => el.onclick = () => { c.partido = el.dataset.partido; c.ideo = Math.round((c.ideo + PARTIDOS[c.partido].ideo) / 2); renderCrear(); });
   const ip = $("#iPartido"); if (ip) ip.oninput = e => c.nombrePartido = e.target.value;

@@ -21,6 +21,7 @@ Juego web por turnos, en español, sobre el mapa real de la República Argentina
 13. **Cancillería**: siete países y bloques ficticios con su relación, visitas oficiales, tratados (algunos los ratifica el Congreso) y acuerdos reservados con uno o más países que no pasan por el Congreso pero pueden filtrarse. La Organización de Naciones Federadas (ONF) vota resoluciones y podés buscar un asiento en su Consejo de Paz y Seguridad o mandar cascos azules.
 14. **Crisis y mercados**: el precio del petróleo, el oro, la soja y la tasa internacional fluctúan mes a mes; aparecen crisis internacionales y nacionales (guerras, tasas del Norte, devaluación del vecino, pandemia, sequía, ciberataques, refugiados) con opciones para manejarlas.
 15. **Incertidumbre y presión social**: la imagen se conoce por encuestas con margen de error y sesgo, el dato de inflación es preliminar, los factores de poder se ven como estimaciones y circulan rumores (algunos falsos). Paros, cortes, lockouts, corridas y reclamos escalan si no los atendés; responder ocupa agenda. Las estadísticas muestran gráficos mes a mes de inflación, pobreza e indigencia, empleo por sector, dólar, reservas, riesgo país, salario real, petróleo y oro.
+16. **Elegir territorio (v0.10)**: como gobernador o intendente, una pantalla de selección con mapa y ficha muestra la dificultad de cada provincia y municipio *para tu partido*. Cada una de las 24 provincias tiene su Legislatura aproximada a la real: unicameral o bicameral (Buenos Aires, Catamarca, Corrientes, Entre Ríos, Mendoza, Salta, San Luis y Santa Fe), bancas, renovación total o por mitades, premio de mayoría (Chubut, Entre Ríos y Santa Fe antes de su reforma), senados uninominales por departamento, composición heredada y mayorías para leyes, vetos y juicio político. También su coparticipación, la dependencia de fondos nacionales, regalías, deuda, pobreza, conflictividad, gremios, empleo público y el peso de los intendentes, que cambian la caja, la tensión social, los expedientes que llegan y la disciplina de tus legisladores. Los 8 municipios tienen lo mismo a su escala (Concejo, premio de mayoría en Córdoba, dependencia de la provincia). Como presidente, los gobernadores tienden a ser del oficialismo histórico de cada provincia. Los datos son aproximaciones y las fuerzas reales se traducen a los partidos ficticios del juego.
 
 ## Guardar la partida
 
@@ -78,6 +79,7 @@ El repositorio ya trae el flujo `.github/workflows/pages.yml`: cada vez que se s
 | `js/gobierno2.js` | Gobierno profundo: reacciones de actores, consecuencias diferidas, comisiones, Presupuesto, Corte |
 | `js/v03.js` | Justicia (causas, jueces, Consejo de la Magistratura), prensa, proyectos de ley propios, derogaciones, adhesiones y eras históricas |
 | `js/escalas.js` | Escalas gobernador e intendente: mapas locales, Legislatura o Concejo, coparticipación, relación con la Nación, dilemas locales |
+| `js/territorios.js` | Las 24 legislaturas provinciales y los 8 concejos (cámaras, bancas, renovación, premio de mayoría, composición), perfil fiscal y social de cada territorio y su dificultad |
 | `js/legislador.js` | Escala diputado y jefe de bloque: lista D'Hondt, votaciones en el recinto, disciplina, interna del bloque, proyectos propios, interpelación y juicio político |
 | `js/leyes_catalogo.js` | Catálogo de proyectos de ley nacionales, leyes provinciales y ordenanzas municipales |
 | `js/leyes.js` | Motor legislativo: voto de cada bloque, mayorías especiales, cámara de origen y revisora, comisiones, veto, insistencia, Corte y proyectos de la oposición |
@@ -94,6 +96,7 @@ El repositorio ya trae el flujo `.github/workflows/pages.yml`: cada vez que se s
 | `js/ui_guardado.js` | Panel de partidas |
 | `js/ui.js` | Interfaz: pantallas, mapa, hemiciclos, gráficos |
 | `js/ui_local.js` | Interfaz del gobierno provincial y municipal |
+| `js/ui_territorios.js` | Selector de provincia o municipio con mapa de dificultad, ficha del territorio y votaciones bicamerales provinciales |
 | `js/ui_legislador.js` | Interfaz del diputado y jefe de bloque |
 | `js/ui_leyes.js` | Pestaña Leyes: redactor, pronóstico de votación y seguimiento del trámite |
 | `tests/simular.js` | Prueba automática (`npm test`) |

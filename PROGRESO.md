@@ -64,5 +64,13 @@ Documento de diseño: https://claude.ai/artifact/2W7cuhDDo71UUFCJoaj9xx
 - [x] Incertidumbre (encuestas con error, datos preliminares, percepción de actores, rumores) y conflictos sociales que escalan
 - Nota de balance: 1989 y 2001 quedaron más difíciles (el bot prudente termina el mandato en ~15-20% de las partidas)
 
+## Etapa 9: v0.10 — Provincias, municipios y sus legislaturas
+- [x] `js/territorios.js`: las 24 legislaturas (uni/bicameral, bancas, renovación, premio de mayoría, senados uninominales, composición heredada aproximada) y perfil fiscal y social de cada provincia
+- [x] Los 8 municipios con Concejo, renovación, premio de mayoría (Córdoba) y perfil propio
+- [x] Pantalla de selección con mapa de dificultad, filtros, orden y ficha (dificultad para tu partido: Legislatura, caja y calle)
+- [x] Motor: Legislaturas bicamerales en leyes, tasas y juicio político; medio término solo donde hay renovación parcial; caja según dependencia de la Nación y holgura; tensión según conflictividad; expedientes típicos de cada territorio; disciplina según el peso de los intendentes; gobernadores del oficialismo histórico al ser presidente
+- [x] Prueba automática recorre las 24 provincias y los 8 municipios
+- Pendiente: sumar más municipios exige cartografía de barrios
+
 ## Próximas ideas
 - [x] Escala legislador / jefe de bloque (v0.5)

@@ -65,7 +65,7 @@ function renderGobiernoLocal() {
   const I = S.ind, yo = S.jugador, gob = S.cfg.objetivo === "gobernador";
   UI.tabLoc = UI.tabLoc || "despacho";
   const pend = S.expedientesLocal.filter(e => !e.resuelto).length;
-  const tabs = [["despacho", `Despacho${pend ? " (" + pend + ")" : ""}`], ["resumen", "Estadísticas"], ["presupuesto", "Presupuesto"], ["leg", gob ? "Legislatura" : "Concejo Deliberante"], ["leyes", gob ? "Leyes" : "Ordenanzas"], ["boletin", "Boletín Oficial"], ["conflictos", `Conflictos${conflictosActivos().length ? " (" + conflictosActivos().length + ")" : ""}`], ["nacion", gob ? "Relación con la Nación" : "Provincia y Nación"]];
+  const tabs = [["despacho", `Despacho${pend ? " (" + pend + ")" : ""}`], ["resumen", "Estadísticas"], ["presupuesto", "Presupuesto"], ["leg", gob ? "Legislatura" : "Concejo Deliberante"], ["leyes", gob ? "Leyes" : "Ordenanzas"], ["boletin", "Boletín Oficial"], ["conflictos", `Conflictos${conflictosActivos().length ? " (" + conflictosActivos().length + ")" : ""}`], ["nacion", gob ? "Relación con la Nación" : "Provincia y Nación"], ["territorio", gob ? "Ficha de la provincia" : "Ficha del municipio"]];
   const P = S.presidente;
   let cuerpo = "";
   if (UI.tabLoc === "despacho") {
@@ -93,10 +93,11 @@ function renderGobiernoLocal() {
       <p class="small muted">Recursos: coparticipación (cae con la inflación nacional y con una mala relación con el presidente), ${gob ? "ingresos brutos e inmobiliario" : "tasas municipales"} (nivel actual: +${S.tasa * 50}%) y deuda.</p>`;
   } else if (UI.tabLoc === "leg") {
     const filas = Object.entries(S.leg).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
-    cuerpo = `<p class="small muted">${gob ? "La Legislatura provincial" : "El Concejo Deliberante"} aprueba adhesiones, tasas y reformas. La mitad se renovó con tu elección; la otra mitad viene del turno anterior. Medio término en el mes 24. Mayoría simple: ${Math.floor(S.legTotal / 2) + 1}; dos tercios: ${Math.ceil(S.legTotal * 2 / 3)}.</p>
-      <div class="hemiciclo" style="max-width:420px"><h3>${gob ? "Legislatura" : "Concejo"} (${S.legTotal} bancas)</h3>${hemiciclo(S.leg, S.legTotal)}</div>
-      <table class="tally"><tr><th>Bloque</th><th>Bancas</th><th>Relación</th></tr>
-      ${filas.map(([k, n]) => `<tr><td><i style="display:inline-block;width:10px;height:10px;background:${PARTIDOS[k] ? PARTIDOS[k].color : "#999"};border-radius:2px"></i> ${PARTIDOS[k] ? PARTIDOS[k].nombre : k}</td><td>${n}</td><td>${k === yo.partido ? "oficialismo" : Math.round(S.legRel[k])}</td></tr>`).join("")}</table>
+    cuerpo = `<p class="small muted">${gob ? "La Legislatura provincial" : "El Concejo Deliberante"} aprueba adhesiones, tasas y reformas. ${S.terr && S.terr.ren === "total" ? "Se eligió completa junto con vos: no hay renovación legislativa en el mes 24." : "La mitad se renovó con tu elección; la otra mitad viene del turno anterior. Medio término en el mes 24."}${S.legSen ? " Es bicameral: cada ley pasa por Diputados y por el Senado provincial." : ""} Mayoría simple: ${Math.floor(S.legTotal / 2) + 1}; dos tercios: ${Math.ceil(S.legTotal * 2 / 3)}${S.legSen ? ` (Senado: ${Math.floor(S.legSenTotal / 2) + 1} y ${Math.ceil(S.legSenTotal * 2 / 3)})` : ""}.</p>
+      <div class="terr-hemis"><div class="hemiciclo" style="max-width:420px"><h3>${gob ? (S.legSen ? "Diputados" : "Legislatura") : "Concejo"} (${S.legTotal} bancas)</h3>${hemiciclo(S.leg, S.legTotal)}</div>
+      ${S.legSen ? `<div class="hemiciclo" style="max-width:420px"><h3>Senado (${S.legSenTotal} bancas)</h3>${hemiciclo(S.legSen, S.legSenTotal)}</div>` : ""}</div>
+      <table class="tally"><tr><th>Bloque</th><th>Bancas</th>${S.legSen ? "<th>Senado</th>" : ""}<th>Relación</th></tr>
+      ${Object.keys({ ...S.leg, ...(S.legSen || {}) }).filter(k => (S.leg[k] || 0) + ((S.legSen || {})[k] || 0) > 0).sort((a, b) => (S.leg[b] || 0) - (S.leg[a] || 0)).map(k => `<tr><td><i style="display:inline-block;width:10px;height:10px;background:${PARTIDOS[k] ? PARTIDOS[k].color : "#999"};border-radius:2px"></i> ${PARTIDOS[k] ? PARTIDOS[k].nombre : k}</td><td>${S.leg[k] || 0}</td>${S.legSen ? `<td>${S.legSen[k] || 0}</td>` : ""}<td>${k === yo.partido ? "oficialismo" : Math.round(S.legRel[k] || 0)}</td></tr>`).join("")}</table>
       <div class="row" style="margin-top:10px"><button class="sec" id="lNegociar" ${S.medidasEsteTrimestre >= 1 ? "disabled" : ""}>Repartir cargos y obras con la oposición</button></div>
       <p class="small muted">Mejora la relación con todos los bloques opositores a cambio de caja.</p>`;
   } else if (UI.tabLoc === "nacion") {
@@ -111,6 +112,7 @@ function renderGobiernoLocal() {
       </div>
       <p class="small muted">Una gestión grande por mes (${S.medidasEsteTrimestre ? "ya la usaste" : "disponible"}).</p>`;
   }
+  if (UI.tabLoc === "territorio") cuerpo = htmlFichaEnJuego();
   if (UI.tabLoc === "leyes") cuerpo = htmlLeyes();
   if (UI.tabLoc === "boletin") cuerpo = htmlBoletin();
   if (UI.tabLoc === "conflictos") cuerpo = htmlConflictos();
