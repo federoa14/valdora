@@ -17,7 +17,7 @@ const PROVINCIAS_JUGABLES = Object.fromEntries(GEO_AR.nacion.provincias.map(p =>
 }]));
 // Municipios jugables como intendente (zonas de barrios esquemáticas dentro del límite real)
 const CIUDADES_JUGABLES = Object.fromEntries(CIUDADES_AR.map(c => [c.id, c]));
-function ciudadActual() { return CIUDADES_JUGABLES[(S && S.cfg && S.cfg.ciudad) || "lamatanza"] || CIUDADES_AR[0]; }
+function ciudadActual() { return CIUDADES_JUGABLES[(S && S.cfg && S.cfg.ciudad) || CIUDAD_DEFECTO] || CIUDADES_AR[0]; }
 
 function mapaGeo(lista, w, h, nivel) {
   const tot = lista.reduce((a, d) => a + (d.hab || d.pob || 0), 0);
@@ -26,17 +26,17 @@ function mapaGeo(lista, w, h, nivel) {
 }
 function mapaDeCfg(cfg) {
   if (cfg.objetivo === "gobernador" || cfg.objetivo === "legislador") {
-    const P = PROVINCIAS_JUGABLES[cfg.objetivo === "legislador" ? "buenosaires" : (cfg.provincia || "buenosaires")] || PROVINCIAS_JUGABLES.buenosaires;
+    const P = PROVINCIAS_JUGABLES[cfg.objetivo === "legislador" ? PROV_LEG : (cfg.provincia || PROV_DEFECTO)] || PROVINCIAS_JUGABLES[PROV_DEFECTO];
     return mapaGeo(P.distritos, P.w, P.h, "provincia");
   }
-  if (cfg.objetivo === "intendente") { const C = CIUDADES_JUGABLES[cfg.ciudad || "lamatanza"] || CIUDADES_AR[0]; return mapaGeo(C.barrios, C.w, C.h, "ciudad"); }
+  if (cfg.objetivo === "intendente") { const C = CIUDADES_JUGABLES[cfg.ciudad || CIUDAD_DEFECTO] || CIUDADES_AR[0]; return mapaGeo(C.barrios, C.w, C.h, "ciudad"); }
   MAPA_META = { w: GEO_AR.nacion.w, h: GEO_AR.nacion.h, nivel: "nacion" };
   return PROVINCIAS_NACION;
 }
 function esLocal() { return S && S.cfg && (S.cfg.objetivo === "gobernador" || S.cfg.objetivo === "intendente"); }
 function mapaNoNacional() { return !!(S && S.cfg && S.cfg.objetivo && S.cfg.objetivo !== "presidente"); }
-function nombreCargo() { return !S ? "" : S.cfg.objetivo === "gobernador" ? "gobernador" : S.cfg.objetivo === "intendente" ? "intendente" : S.cfg.objetivo === "legislador" ? "diputado nacional" : "presidente"; }
-function nombreTerritorio() { return S.cfg.objetivo === "gobernador" ? PROVINCIAS_JUGABLES[S.cfg.provincia || "buenosaires"].nombre : S.cfg.objetivo === "intendente" ? ciudadActual().nombre : S.cfg.objetivo === "legislador" ? "Buenos Aires" : "la Argentina"; }
+function nombreCargo() { return !S ? "" : S.cfg.objetivo === "gobernador" ? "gobernador" : S.cfg.objetivo === "intendente" ? "intendente" : S.cfg.objetivo === "legislador" ? (S.cfg.camaraLeg === "sen" ? "senador nacional" : "diputado nacional") : "presidente"; }
+function nombreTerritorio() { return S.cfg.objetivo === "gobernador" ? PROVINCIAS_JUGABLES[S.cfg.provincia || PROV_DEFECTO].nombre : S.cfg.objetivo === "intendente" ? ciudadActual().nombre : S.cfg.objetivo === "legislador" ? PROVINCIAS_JUGABLES[PROV_LEG].nombre : "la Argentina"; }
 
 const _iniciarPartidaEsc = iniciarPartida;
 iniciarPartida = function (cfg) {
@@ -83,7 +83,7 @@ function iniciarGobiernoLocal() {
   S.trimestre = 1; S.mes = 1; S.paso = 1 / 3;
   const yo = S.jugador, gob = S.cfg.objetivo === "gobernador";
   // Legislatura provincial o Concejo Deliberante: mitad elegida ahora, mitad heredada
-  const total = gob ? PROVINCIAS_JUGABLES[S.cfg.provincia || "buenosaires"].bancas : ciudadActual().bancas;
+  const total = gob ? PROVINCIAS_JUGABLES[S.cfg.provincia || PROV_DEFECTO].bancas : ciudadActual().bancas;
   const votos = {};
   for (const cid in S.resultadoGeneral.nac) { const c = S.candidatos.find(x => x.id === cid); votos[c.partido] = (votos[c.partido] || 0) + S.resultadoGeneral.nac[cid]; }
   const nuevas = dHondt(votos, Math.ceil(total / 2));

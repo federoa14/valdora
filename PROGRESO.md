@@ -72,5 +72,13 @@ Documento de diseño: https://claude.ai/artifact/2W7cuhDDo71UUFCJoaj9xx
 - [x] Prueba automática recorre las 24 provincias y los 8 municipios
 - Pendiente: sumar más municipios exige cartografía de barrios
 
+## Etapa 10: v0.11 — Foco en Entre Ríos
+- [x] `js/geo_er.js`: constante `SOLO_ENTRE_RIOS` (en `false` se reabren las 24 provincias y los 8 municipios del resto del país)
+- [x] Gobernador: Entre Ríos fija, con mapa de sus 17 departamentos en la pantalla de inicio
+- [x] Intendente: 10 ciudades entrerrianas con Concejo (renovación total y mitad más uno para el ganador), perfil fiscal y social y zonas esquemáticas
+- [x] Legislador: diputado nacional (5 de 9 bancas, D'Hondt) o senador nacional (2 + 1) por Entre Ríos; el bloque se conduce en Diputados o en el Senado
+- [x] Prueba automática suma las 10 ciudades, el senador y el tamaño de cada cámara
+- Pendiente: diputado o senador provincial (Legislatura de Paraná) como cargo jugable; cartografía real de los barrios entrerrianos
+
 ## Próximas ideas
 - [x] Escala legislador / jefe de bloque (v0.5)

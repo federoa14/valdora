@@ -78,17 +78,26 @@ function renderPortada() {
 
 // ---------- Creación del personaje ----------
 const PUNTOS_ATRIB = 24;
+// Legislador: Diputados o Senado por la provincia de la lista
+function htmlSelectorCamara(c) {
+  const prov = PROVINCIAS_JUGABLES[PROV_LEG].nombre, D = DISTRITO_LEG[PROV_LEG] || DISTRITO_LEG.buenosaires;
+  const ops = [
+    ["dip", `Diputado nacional por ${prov}`, `${prov} tiene ${D.dipTotal} diputados y este turno elige ${D.dipRenueva} por D'Hondt (umbral del 3%). Conducís tu bloque en una Cámara de 257.`],
+    ["sen", `Senador nacional por ${prov}`, `Se eligen 3 senadores: 2 para la lista más votada y 1 para la segunda. Hay que salir primero o segundo. Conducís tu bloque en un Senado de 72.`],
+  ];
+  return `<div class="card stack"><h2>Cámara</h2><div class="opciones" style="grid-template-columns:1fr 1fr">${ops.map(([id, n, d]) => `<div class="opcion ${c.camaraLeg === id ? "sel" : ""}" data-camleg="${id}"><b>${n}</b><span class="small muted">${d}</span></div>`).join("")}</div></div>`;
+}
 function renderCrear() {
   UI.cfg = UI.cfg || { nombre: "", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: "presidente", camino: "sumarse", partido: "MNJ", nombrePartido: "", tipoInterna: null, era: "hoy" };
-  const c = UI.cfg;
+  const c = normalizarTerritorio(UI.cfg);
   const usados = c.carisma + c.oratoria + c.gestion + c.negociacion;
   const ideoTxt = c.ideo < 20 ? "Izquierda" : c.ideo < 40 ? "Centroizquierda" : c.ideo < 60 ? "Centro" : c.ideo < 80 ? "Centroderecha" : "Derecha liberal";
   const atr = (k, n, d) => `<div class="attr"><span title="${d}">${n}</span><input type="range" min="1" max="10" value="${c[k]}" data-attr="${k}"><b>${c[k]}</b></div>`;
   const objetivos = [
     ["presidente", "Presidente", "Ejecutivo nacional. Disponible en esta versión."],
-    ["gobernador", "Gobernador", "Elegí entre las 24 provincias: cada una con su Legislatura (una o dos cámaras), su coparticipación, su deuda y sus conflictos."],
-    ["intendente", "Intendente", "Elegí entre 8 municipios reales (La Matanza, La Plata, Córdoba, Mendoza…), cada uno con su Concejo Deliberante, su caja y sus barrios."],
-    ["legislador", "Diputado nacional, jefe de bloque", "Lista por la provincia de Buenos Aires. En la Cámara conducís tu bloque: votos, negociaciones, proyectos propios."],
+    ["gobernador", "Gobernador", SOLO_ENTRE_RIOS ? "Gobernador de Entre Ríos: 17 departamentos, Legislatura de dos cámaras, caja de jubilaciones en rojo e intendentes con poder propio." : "Elegí entre las 24 provincias: cada una con su Legislatura (una o dos cámaras), su coparticipación, su deuda y sus conflictos."],
+    ["intendente", "Intendente", SOLO_ENTRE_RIOS ? `Elegí entre ${CIUDADES_ER.length} ciudades entrerrianas (Paraná, Concordia, Gualeguaychú, Concepción del Uruguay…), cada una con su Concejo Deliberante, su caja y sus barrios.` : "Elegí entre 8 municipios reales (La Matanza, La Plata, Córdoba, Mendoza…), cada uno con su Concejo Deliberante, su caja y sus barrios."],
+    ["legislador", "Legislador nacional, jefe de bloque", `Diputado o senador por ${PROVINCIAS_JUGABLES[PROV_LEG].nombre}. En el Congreso conducís tu bloque: votos, negociaciones, proyectos propios.`],
   ];
   const partidos = ["MNJ", "UR", "FC", "LY", "FT"];
   app.innerHTML = `
@@ -122,6 +131,7 @@ function renderCrear() {
         </div>
       </div>
       ${c.objetivo === "gobernador" || c.objetivo === "intendente" ? htmlSelectorTerritorio(c) : ""}
+      ${c.objetivo === "legislador" ? htmlSelectorCamara(c) : ""}
       <div class="card stack">
         <h2>4. Tu camino</h2>
         <div class="opciones" style="grid-template-columns:1fr 1fr">
@@ -151,6 +161,7 @@ function renderCrear() {
   document.querySelectorAll("[data-era]").forEach(el => el.onclick = () => { c.era = el.dataset.era; renderCrear(); });
   document.querySelectorAll("[data-obj]").forEach(el => el.onclick = () => { c.objetivo = el.dataset.obj; renderCrear(); });
   if (c.objetivo === "gobernador" || c.objetivo === "intendente") bindSelectorTerritorio(c, renderCrear);
+  document.querySelectorAll("[data-camleg]").forEach(el => el.onclick = () => { c.camaraLeg = el.dataset.camleg; renderCrear(); });
   document.querySelectorAll("[data-camino]").forEach(el => el.onclick = () => { c.camino = el.dataset.camino; renderCrear(); });
   document.querySelectorAll("[data-partido]").forEach(el => el.onclick = () => { c.partido = el.dataset.partido; c.ideo = Math.round((c.ideo + PARTIDOS[c.partido].ideo) / 2); renderCrear(); });
   const ip = $("#iPartido"); if (ip) ip.oninput = e => c.nombrePartido = e.target.value;

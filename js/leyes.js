@@ -32,11 +32,25 @@ function senadoDerivado(cam) {
   return sen;
 }
 
+// Para un senador: Diputados se arma al revés, con la Cámara de 257 que acompaña al Senado
+function diputadosDerivado(sen) {
+  const peso = { MNJ: 1.15, PROV: 1.5, FT: 0.3, LY: 0.8, UR: 1.1, FC: 0.9 };
+  const w = {}; let tot = 0;
+  for (const k in sen) { w[k] = sen[k] / (peso[k] || 1); tot += w[k]; }
+  const dip = {}; let suma = 0;
+  for (const k in w) { dip[k] = Math.round(w[k] / tot * 257); suma += dip[k]; }
+  const mayor = Object.keys(dip).sort((a, b) => dip[b] - dip[a])[0];
+  dip[mayor] += 257 - suma;
+  return dip;
+}
+
 function ctxLey() {
   const yo = S.jugador;
   if (typeof esLegislador === "function" && esLegislador()) {
-    if (!S.senLeg) S.senLeg = senadoDerivado(S.cam);
-    return { modo: "leg", bicameral: true, dip: S.cam, sen: S.senLeg, tot: { dip: 257, sen: 72 }, ofi: S.presNac.partido, yo: yo.partido,
+    const esSen = camLeg().sen;
+    if (esSen && !S.dipLeg) S.dipLeg = diputadosDerivado(S.cam);
+    if (!esSen && !S.senLeg) S.senLeg = senadoDerivado(S.cam);
+    return { modo: "leg", bicameral: true, propia: esSen ? "sen" : "dip", dip: esSen ? S.dipLeg : S.cam, sen: esSen ? S.cam : S.senLeg, tot: { dip: 257, sen: 72 }, ofi: S.presNac.partido, yo: yo.partido,
       rel: k => k === yo.partido ? 70 : (S.relBloques[k] || 0) - (k === S.presNac.partido && !S.oficialismo ? 10 : 0),
       disc: k => k === yo.partido ? S.leg2.disciplina / 100 : (DISC_BASE[k] || 0.7) };
   }
@@ -103,7 +117,7 @@ function camaraOrigen(ley, ctx) {
   if (!ctx.bicameral) return { c: "dip", txt: "" };
   if (ley.materia === "tributaria") return { c: "dip", txt: "Las leyes de impuestos empiezan en Diputados (art. 52)." };
   if (ley.materia === "coparticipacion") return { c: "sen", txt: "La coparticipación empieza en el Senado (art. 75 inc. 2)." };
-  if (ctx.modo === "leg") return { c: "dip", txt: "Lo presentás en Diputados." };
+  if (ctx.modo === "leg") return ctx.propia === "sen" ? { c: "sen", txt: "Lo presentás en el Senado." } : { c: "dip", txt: "Lo presentás en Diputados." };
   if (["tratado", "tratadoDDHH", "integracion"].includes(ley.materia)) return { c: "sen", txt: "Los tratados suelen entrar por el Senado." };
   return { c: "dip", txt: "Entra por Diputados." };
 }
@@ -577,7 +591,8 @@ if (typeof finTrimestreLeg === "function") {
   finTrimestreLeg = function () {
     const ev = _finLegLey();
     if (S.perdio || S.terminoMandato) return ev;
-    S.senLeg = senadoDerivado(S.cam); // el Senado acompaña los cambios de bancas
+    if (camLeg().sen) S.dipLeg = diputadosDerivado(S.cam); // la otra cámara acompaña los cambios de bancas
+    else S.senLeg = senadoDerivado(S.cam);
     return [...ev, ...procesarLeyesMes()];
   };
   // los proyectos del catálogo que se votan en el recinto siguen al Senado y al presidente
@@ -592,13 +607,15 @@ if (typeof finTrimestreLeg === "function") {
     const base = LEYES_CATALOGO.find(l => l.id === P.id);
     const ley = JSON.parse(JSON.stringify(base));
     ley.autor = pr.origen === "ejecutivo" ? S.presNac.partido : Object.keys(S.cam).filter(k => k !== S.presNac.partido && PARTIDOS[k]).sort((a, b) => Math.abs(PARTIDOS[a].ideo - ley.ideo) - Math.abs(PARTIDOS[b].ideo - ley.ideo))[0];
-    ley.propia = false; ley.baseId = base.id; ley.uid = ++estadoLeyes().n; ley.desde = S.mes; ley.extra = 0; ley.camara = "dip";
+    ley.propia = false; ley.baseId = base.id; ley.uid = ++estadoLeyes().n; ley.desde = S.mes; ley.extra = 0;
+    const rev = camLeg().sen ? "dip" : "sen", nomRev = rev === "sen" ? "el Senado" : "Diputados";
+    ley.camara = rev === "sen" ? "dip" : "sen";
     const ctx = ctxLey();
-    const s = votarCuerpoLey("sen", ley, ctx, {});
+    const s = votarCuerpoLey(rev, ley, ctx, {});
     r.pasos.push(s);
-    if (!s.aprobado) { r.msg += " El Senado lo rechazó después."; return r; }
+    if (!s.aprobado) { r.msg += ` ${nomRev[0].toUpperCase() + nomRev.slice(1)} lo rechazó después.`; return r; }
     const fin = promulgacion(ley, ctx, r.pasos, "");
-    r.msg += " Sanción del Senado." + fin.msg;
+    r.msg += ` Sanción de ${nomRev}.` + fin.msg;
     return r;
   };
 }
