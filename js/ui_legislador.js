@@ -1,5 +1,5 @@
 // =============================================================
-//  VALDORA - Interfaz del diputado y jefe de bloque
+//  VALDORA - Interfaz del legislador nacional (diputado o senador) y jefe de bloque
 // =============================================================
 
 const _renderEstadoLeg = renderEstado;
@@ -75,13 +75,14 @@ function renderLegislador() {
         <button class="opcion" data-al="medios" ${sin}><b>Entrevista en televisión</b><span class="small muted">Imagen, según tu oratoria</span></button>
         <button class="opcion" data-al="sesionEsp" ${sin}><b>Pedir sesión especial</b><span class="small muted">Tu proyecto más viejo, sin dictamen: dos tercios</span></button>
         <button class="opcion" data-al="interpelar" ${sin}><b>Interpelar al Jefe de Gabinete</b><span class="small muted">Art. 101: mayoría absoluta. Solo desde la oposición</span></button>
-        <button class="opcion" data-al="juicio" ${sin}><b>Pedir juicio político al presidente</b><span class="small muted">Art. 53: dos tercios. Arma de doble filo</span></button>
+        <button class="opcion" data-al="juicio" ${sin}><b>${camLeg().sen ? "Votar la destitución del presidente" : "Pedir juicio político al presidente"}</b><span class="small muted">${camLeg().sen ? "Art. 59: el Senado juzga y destituye con dos tercios" : "Art. 53: dos tercios"}. Arma de doble filo</span></button>
       </div>
       <p class="small muted">Favores acumulados: ${L.recursos}. Muchos favores sin usar aumentan el riesgo de escándalo.</p>`;
   } else if (UI.tabLeg === "camara") {
     const filas = Object.entries(S.cam).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
-    cuerpo = `<p class="small muted">Cámara de Diputados: 257 bancas, quórum 129. El presidente de la Nación es del <b>${PARTIDOS[S.presNac.partido].nombre}</b> (imagen ${Math.round(S.presNac.imagen)}%).${S.interbloque ? ` Interbloque con ${PARTIDOS[S.interbloque].corto}.` : ""}</p>
-      <div class="hemiciclo" style="max-width:520px"><h3>Diputados (257)</h3>${hemiciclo(S.cam, 257)}</div>
+    const C = camLeg();
+    cuerpo = `<p class="small muted">${C.sen ? "Senado de la Nación" : "Cámara de Diputados"}: ${C.total} bancas, quórum ${Math.floor(C.total / 2) + 1}. Representás a ${esc(C.prov)}. El presidente de la Nación es del <b>${PARTIDOS[S.presNac.partido].nombre}</b> (imagen ${Math.round(S.presNac.imagen)}%).${S.interbloque ? ` Interbloque con ${PARTIDOS[S.interbloque].corto}.` : ""}</p>
+      <div class="hemiciclo" style="max-width:520px"><h3>${C.sen ? "Senado" : "Diputados"} (${C.total})</h3>${hemiciclo(S.cam, C.total)}</div>
       <table class="tally"><tr><th>Bloque</th><th>Bancas</th><th>Relación con vos</th></tr>
       ${filas.map(([k, n]) => `<tr><td><i style="display:inline-block;width:10px;height:10px;background:${PARTIDOS[k].color};border-radius:2px"></i> ${PARTIDOS[k].nombre}${k === S.presNac.partido ? " (oficialismo)" : ""}</td><td>${n}</td><td>${k === yo.partido ? "tu bloque" : Math.round(S.relBloques[k])}</td></tr>`).join("")}</table>`;
   } else {
@@ -90,10 +91,11 @@ function renderLegislador() {
       <p class="small muted" style="margin-top:10px">Si la disciplina baja de 20, el bloque se parte. Si se queda sin diputados o tu imagen se hunde, perdés la jefatura. Medio término en el mes 24; el mandato dura 48 meses.</p>
       <h3>Evolución</h3>${grafico([{ k: "influencia", n: "Influencia", c: "#5b9be6", min: 0, max: 100 }, { k: "disciplina", n: "Disciplina", c: "#2e8b57", min: 0, max: 100 }, { k: "imagen", n: "Imagen", c: "#e3a63b", min: 0, max: 100 }])}`;
   }
+  cuerpo = txtCam(cuerpo); // para un senador, los textos del bloque hablan del Senado
   if (UI.tabLeg === "leyes") cuerpo = htmlLeyes();
   app.innerHTML = `
     <div class="card stack">
-      <div class="row" style="justify-content:space-between;align-items:center"><h2>Bloque ${esc(PARTIDOS[yo.partido].nombre)} · ${S.cam[yo.partido]} diputados</h2><button id="legFin">Terminar el mes ▸</button></div>
+      <div class="row" style="justify-content:space-between;align-items:center"><h2>Bloque ${esc(PARTIDOS[yo.partido].nombre)} · ${S.cam[yo.partido]} ${camLeg().miembros}</h2><button id="legFin">Terminar el mes ▸</button></div>
       <div class="tabs">${tabs.map(([id, n]) => `<button data-legtab="${id}" class="${UI.tabLeg === id ? "on" : ""}">${n}</button>`).join("")}</div>
       <div>${cuerpo}</div>
     </div>
@@ -103,8 +105,9 @@ function renderLegislador() {
   document.querySelectorAll("[data-legtab]").forEach(b => b.onclick = () => { UI.tabLeg = b.dataset.legtab; volver(); });
   bindLeyes(volver);
   document.querySelectorAll("[data-pr]").forEach(b => b.onclick = () => mostrar(resolverProyecto(+b.dataset.pr, b.dataset.post)));
-  document.querySelectorAll("[data-eb]").forEach(b => b.onclick = () => mostrar(resolverExpBloque(+b.dataset.eb, +b.dataset.ebo)));
-  document.querySelectorAll("[data-al]").forEach(b => b.onclick = () => mostrar(accionLeg(b.dataset.al)));
+  const mostrarTxt = r => mostrar(r && { ...r, msg: txtCam(r.msg) });
+  document.querySelectorAll("[data-eb]").forEach(b => b.onclick = () => mostrarTxt(resolverExpBloque(+b.dataset.eb, +b.dataset.ebo)));
+  document.querySelectorAll("[data-al]").forEach(b => b.onclick = () => mostrarTxt(accionLeg(b.dataset.al)));
   const lp = $("#lPresentar"); if (lp) lp.onclick = () => mostrar(accionLeg("proyecto", $("#lTema").value));
   $("#legFin").onclick = () => { const ev = finTrimestreLeg(); colaEventos(ev, () => { if (S.perdio) renderFin(false); else renderJuego(); }); };
 }

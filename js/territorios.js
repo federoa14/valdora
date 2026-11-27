@@ -122,6 +122,28 @@ const PERFIL_CIUDAD = {
     rasgos: ["Ciudad chica, ordenada y con recursos propios.", "Concejo de 12 bancas con mayoría oficialista.", "Ideal para empezar."] },
   tucuman:     { pobAbs: 0.6, ofi: "MNJ", ren: "total", base: { MNJ: 50, UR: 25, LY: 12, FC: 10, FT: 3 }, dep: 70, fisc: -1, deuda: 1, pob: 40, des: 8, inseg: 55, serv: 40, conf: 2, sind: 2, emp: 2,
     rasgos: ["Depende de que la provincia gire los fondos a tiempo.", "La relación con el gobernador decide la obra pública.", "Basura y transporte: los reclamos de siempre."] },
+  // Entre Ríos (ley orgánica de municipios: el Concejo se renueva entero cada 4 años
+  // y la lista que gana la intendencia se lleva la mitad más uno de las bancas)
+  parana:       { pobAbs: 0.27, ofi: "MNJ", ren: "total", premio: 10, base: { MNJ: 42, FC: 30, UR: 12, LY: 12, FT: 4 }, dep: 55, fisc: -1, deuda: 2, pob: 33, des: 7, inseg: 50, serv: 50, conf: 2, sind: 3, emp: 3,
+    rasgos: ["Capital provincial: estatales, docentes y la Casa de Gobierno a diez cuadras.", "La lista que gana se lleva 10 de las 18 bancas del Concejo.", "Barrios sobre las barrancas y asentamientos sobre el río."] },
+  concordia:    { pobAbs: 0.17, ofi: "FC", ren: "total", premio: 10, base: { FC: 38, MNJ: 38, UR: 10, LY: 10, FT: 4 }, dep: 68, fisc: -1, deuda: 2, pob: 45, des: 9, inseg: 50, serv: 38, conf: 2, sind: 2, emp: 3,
+    rasgos: ["Una de las ciudades con más pobreza del país: la ayuda social es masiva.", "Citrus, la represa de Salto Grande y el puente a Salto.", "Ciudad pendular: cambia de signo político seguido."] },
+  gualeguaychu: { pobAbs: 0.11, ofi: "FC", ren: "total", premio: 8, base: { FC: 36, MNJ: 34, UR: 16, LY: 10, FT: 4 }, dep: 45, fisc: 1, deuda: 1, pob: 25, des: 6, inseg: 35, serv: 55, conf: 1, sind: 2, emp: 2,
+    rasgos: ["El Carnaval del País y el turismo de verano llenan la caja.", "Asambleas ambientalistas con poder de veto en la calle.", "Parque industrial y frontera con Fray Bentos."] },
+  cdeluruguay:  { pobAbs: 0.085, ofi: "MNJ", ren: "total", premio: 8, base: { MNJ: 42, UR: 22, FC: 20, LY: 12, FT: 4 }, dep: 55, fisc: 0, deuda: 1, pob: 28, des: 7, inseg: 35, serv: 52, conf: 1, sind: 2, emp: 3,
+    rasgos: ["Ciudad histórica y universitaria: el radicalismo tiene peso propio.", "Puerto sobre el Uruguay y frigoríficos avícolas.", "La lista que gana se lleva 8 de las 14 bancas."] },
+  gualeguay:    { pobAbs: 0.045, ofi: "MNJ", ren: "total", premio: 7, base: { MNJ: 38, FC: 28, UR: 22, LY: 10, FT: 2 }, dep: 65, fisc: 0, deuda: 1, pob: 32, des: 7, inseg: 30, serv: 48, conf: 1, sind: 1, emp: 3,
+    rasgos: ["Ciudad ganadera y frigorífica del sur entrerriano.", "El río Gualeguay inunda los barrios bajos.", "Concejo chico: con dos concejales se da vuelta todo."] },
+  victoria:     { pobAbs: 0.036, ofi: "FC", ren: "total", premio: 7, base: { FC: 40, MNJ: 35, UR: 12, LY: 10, FT: 3 }, dep: 62, fisc: 0, deuda: 1, pob: 28, des: 6, inseg: 25, serv: 50, conf: 1, sind: 1, emp: 2,
+    rasgos: ["El puente a Rosario la convirtió en ciudad turística.", "Islas del Paraná: quemas de pastizales y conflicto con Santa Fe.", "Casino, barrancas y loteos que presionan sobre los humedales."] },
+  chajari:      { pobAbs: 0.04, ofi: "MNJ", ren: "total", premio: 7, base: { MNJ: 40, FC: 32, UR: 14, LY: 12, FT: 2 }, dep: 55, fisc: 1, deuda: 0, pob: 25, des: 5, inseg: 20, serv: 55, conf: 0, sind: 1, emp: 2,
+    rasgos: ["Capital del citrus y de las termas: recursos propios sanos.", "Colonias de inmigrantes y productores organizados.", "Ideal para empezar."] },
+  villaguay:    { pobAbs: 0.04, ofi: "MNJ", ren: "total", premio: 7, base: { MNJ: 42, UR: 22, FC: 22, LY: 12, FT: 2 }, dep: 72, fisc: -1, deuda: 1, pob: 34, des: 7, inseg: 25, serv: 42, conf: 1, sind: 1, emp: 3,
+    rasgos: ["Centro geográfico de la provincia, arrocero y ganadero.", "La Municipalidad es el mayor empleador.", "Depende de que Paraná gire la coparticipación a tiempo."] },
+  lapaz:        { pobAbs: 0.027, ofi: "MNJ", ren: "total", premio: 6, base: { MNJ: 45, FC: 28, UR: 14, LY: 11, FT: 2 }, dep: 80, fisc: -1, deuda: 1, pob: 42, des: 8, inseg: 20, serv: 38, conf: 1, sind: 1, emp: 3,
+    rasgos: ["El norte postergado: caminos de tierra y pocas inversiones.", "Pesca, barrancas y turismo de río como apuesta.", "Casi toda la plata viene de la provincia."] },
+  colon:        { pobAbs: 0.03, ofi: "FC", ren: "total", premio: 6, base: { FC: 32, MNJ: 30, UR: 26, LY: 10, FT: 2 }, dep: 45, fisc: 1, deuda: 0, pob: 20, des: 5, inseg: 20, serv: 60, conf: 0, sind: 1, emp: 2,
+    rasgos: ["Turismo todo el año: termas, playas y el parque El Palmar cerca.", "Cuentas ordenadas y servicios de los mejores de la provincia.", "Tres fuerzas casi empatadas en el Concejo."] },
 };
 
 // ---------- Utilidades ----------
@@ -141,8 +163,8 @@ function datosTerritorio(kind, id) {
   return { kind, id, nombre: c ? c.nombre : id, prov: c ? c.provincia : "", pobAbs: P ? P.pobAbs : 0.5, L: { tipo: "uni", dip: c ? c.bancas : 20, ren: P ? P.ren : "mitades", premio: P && P.premio, sistema: P && P.premio ? `Premio de mayoría: la lista ganadora se lleva ${P.premio} de ${c.bancas} bancas.` : "D'Hondt en distrito único." }, P };
 }
 function territorioDeCfg(cfg) {
-  if (cfg.objetivo === "gobernador") return datosTerritorio("prov", cfg.provincia || "buenosaires");
-  if (cfg.objetivo === "intendente") return datosTerritorio("ciudad", cfg.ciudad || "lamatanza");
+  if (cfg.objetivo === "gobernador") return datosTerritorio("prov", cfg.provincia || PROV_DEFECTO);
+  if (cfg.objetivo === "intendente") return datosTerritorio("ciudad", cfg.ciudad || CIUDAD_DEFECTO);
   return null;
 }
 

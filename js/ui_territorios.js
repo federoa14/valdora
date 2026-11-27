@@ -77,7 +77,8 @@ function fichaTerritorio(T, cfg, enJuego) {
 // ---------- Selector en la pantalla de creación ----------
 function listaTerritorios(c) {
   const kind = c.objetivo === "gobernador" ? "prov" : "ciudad";
-  const ids = kind === "prov" ? Object.keys(PERFIL_PROV) : CIUDADES_AR.map(x => x.id);
+  const permitidos = territoriosPermitidos(kind);
+  const ids = (kind === "prov" ? Object.keys(PERFIL_PROV) : CIUDADES_AR.map(x => x.id)).filter(id => !permitidos || permitidos.includes(id));
   return ids.map(id => { const T = datosTerritorio(kind, id); return { T, d: dificultadTerritorio(T, c) }; });
 }
 
@@ -90,40 +91,53 @@ function mapaSelector(lista, selId) {
         : `<path class="prov ${p.id === selId ? "sel" : ""}" data-terr="${p.id}" d="${p.path}" fill="${col}"><title>${esc(p.nombre)} · ${x ? x.d.etiqueta : ""}</title></path>`; }).join("")}
   </svg>`;
 }
+// Una sola provincia en juego: su mapa de departamentos, con las ciudades jugables marcadas
+function mapaProvincia(id, ciudadSel) {
+  const D = GEO_AR.deptos[id]; if (!D) return "";
+  const col = { capital: "#3d7fe0", agro: "#3fbf7f", norte: "#c9b84c", conurbano: "#e3893b" };
+  const lista = id === "buenosaires" ? D.secciones : D.deptos;
+  return `<svg class="mapa terr-mapa" viewBox="0 0 ${D.w} ${D.h}" role="img" aria-label="Departamentos de ${esc(PROVINCIAS_JUGABLES[id].nombre)}">
+    ${lista.map(d => `<path class="prov" d="${d.path}" fill="${col[d.perfil] || "#556"}"><title>${esc(d.nombre)}</title></path>`).join("")}
+    ${lista.map(d => `<text x="${d.cx}" y="${d.cy}" text-anchor="middle" font-size="13" fill="#fff" style="pointer-events:none;paint-order:stroke;stroke:#0b1a33;stroke-width:3px">${esc(d.nombre)}</text>`).join("")}
+  </svg>
+  <p class="small muted" style="text-align:center">${lista.length} departamentos: en la campaña recorrés cada uno.</p>`;
+}
 function mapaCiudad(id) {
   const C = CIUDADES_AR.find(x => x.id === id); if (!C) return "";
   const col = { capital: "#3d7fe0", conurbano: "#e3893b", norte: "#c9b84c", agro: "#3fbf7f", patagonia: "#8fa3c0", cuyo: "#b07ad6" };
-  return `<svg class="mapa terr-mapa" viewBox="0 0 ${C.w} ${C.h}" role="img" aria-label="Barrios de ${esc(C.nombre)}">${C.barrios.map(b => `<path class="prov" d="${b.path}" fill="${col[b.perfil] || "#556"}"><title>${esc(b.nombre)}</title></path>`).join("")}</svg>
-    <p class="small muted" style="text-align:center">${C.barrios.length} barrios o localidades</p>`;
+  return `<svg class="mapa terr-mapa" viewBox="0 0 ${C.w} ${C.h}" role="img" aria-label="Barrios de ${esc(C.nombre)}">${C.barrios.map(b => `<path class="prov" d="${b.path}" fill="${col[b.perfil] || "#556"}"><title>${esc(b.nombre)}</title></path>`).join("")}
+    ${C.esquematico ? C.barrios.map(b => `<text x="${b.cx}" y="${b.cy}" text-anchor="middle" font-size="12" fill="#fff" style="pointer-events:none;paint-order:stroke;stroke:#0b1a33;stroke-width:3px">${esc(b.nombre)}</text>`).join("") : ""}</svg>
+    <p class="small muted" style="text-align:center">${C.barrios.length} ${C.esquematico ? "zonas (trazado esquemático)" : "barrios o localidades"}</p>`;
 }
 
 function htmlSelectorTerritorio(c) {
   const esProv = c.objetivo === "gobernador";
-  const selId = esProv ? (c.provincia || "buenosaires") : (c.ciudad || "lamatanza");
+  const selId = esProv ? (c.provincia || PROV_DEFECTO) : (c.ciudad || CIUDAD_DEFECTO);
   const lista = listaTerritorios(c);
   const orden = UI.terrOrden || "facil";
-  const filtro = esProv ? (UI.terrFiltro || "todas") : "todas";
+  const unica = esProv && lista.length === 1;
+  const filtro = esProv && !unica ? (UI.terrFiltro || "todas") : "todas";
   let vis = lista.filter(x => filtro === "todas" || (filtro === "bi" ? x.T.L.tipo === "bi" : filtro === "uni" ? x.T.L.tipo === "uni" : filtro === "propia" ? x.d.afin >= 45 : true));
   vis.sort(orden === "facil" ? (a, b) => a.d.total - b.d.total : orden === "dificil" ? (a, b) => b.d.total - a.d.total : orden === "pob" ? (a, b) => b.T.pobAbs - a.T.pobAbs : (a, b) => a.T.nombre.localeCompare(b.T.nombre));
   const sel = lista.find(x => x.T.id === selId) || lista[0];
   const yo = familiaJugador(c);
   return `<div class="card stack">
-    <h2>${esProv ? "Provincia" : "Municipio"}</h2>
-    <p class="small muted">Cada ${esProv ? "provincia" : "municipio"} tiene su ${esProv ? "Legislatura" : "Concejo"}, su plata y sus conflictos. La dificultad se calcula para ${yo === "NUEVO" ? "un partido nuevo, sin bancas" : "el " + esc(PARTIDOS[yo].nombre)}: si cambiás de partido o de camino, cambia.</p>
+    <h2>${esProv ? (unica ? "Provincia: " + esc(sel.T.nombre) : "Provincia") : "Municipio" + (SOLO_ENTRE_RIOS ? " de Entre Ríos" : "")}</h2>
+    <p class="small muted">${unica ? "Esta versión se juega en Entre Ríos: 17 departamentos, Legislatura de dos cámaras con premio de mayoría y un senador por departamento. " : SOLO_ENTRE_RIOS && !esProv ? `Elegí entre ${lista.length} ciudades entrerrianas. ` : ""}Cada ${esProv ? "provincia" : "municipio"} tiene su ${esProv ? "Legislatura" : "Concejo"}, su plata y sus conflictos. La dificultad se calcula para ${yo === "NUEVO" ? "un partido nuevo, sin bancas" : "el " + esc(PARTIDOS[yo].nombre)}: si cambiás de partido o de camino, cambia.</p>
     <div class="terr-sel">
-      <div class="terr-izq">${esProv ? mapaSelector(lista, selId) : mapaCiudad(selId)}
-        ${esProv ? `<div class="terr-ref small">${Object.entries(COLOR_DIF).map(([k, v]) => `<span><i class="terr-punto" style="background:${v}"></i>${k}</span>`).join("")}</div>` : ""}</div>
+      <div class="terr-izq">${unica ? mapaProvincia(sel.T.id) : esProv ? mapaSelector(lista, selId) : mapaCiudad(selId)}
+        ${esProv && !unica ? `<div class="terr-ref small">${Object.entries(COLOR_DIF).map(([k, v]) => `<span><i class="terr-punto" style="background:${v}"></i>${k}</span>`).join("")}</div>` : ""}</div>
       <div class="terr-der">${fichaTerritorio(sel.T, c, false)}</div>
     </div>
-    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+    ${unica ? "" : `<div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
       <label class="small muted">Ordenar</label>
       <select id="terrOrden"><option value="facil" ${orden === "facil" ? "selected" : ""}>De más fácil a más difícil</option><option value="dificil" ${orden === "dificil" ? "selected" : ""}>De más difícil a más fácil</option><option value="pob" ${orden === "pob" ? "selected" : ""}>Por población</option><option value="az" ${orden === "az" ? "selected" : ""}>Alfabético</option></select>
       ${esProv ? `<div class="tabs terr-filtros">${[["todas", "Todas"], ["uni", "Unicamerales"], ["bi", "Bicamerales"], ["propia", "Con mayoría de tu partido"]].map(([k, n]) => `<button class="${filtro === k ? "on" : ""}" data-terrf="${k}">${n}</button>`).join("")}</div>` : ""}
     </div>
     <div class="terr-grilla">${vis.map(({ T, d }) => `<button class="opcion terr-op ${T.id === selId ? "sel" : ""}" data-terr="${T.id}" style="border-left:5px solid ${COLOR_DIF[d.etiqueta]}">
         <b>${esc(esProv ? T.nombre.replace("Ciudad Autónoma de Buenos Aires", "CABA") : T.nombre)}</b>
-        <span class="small muted">${d.etiqueta} (${d.total}) · ${T.L.tipo === "bi" ? `${T.L.dip}+${T.L.sen} bancas` : `${T.L.dip} bancas`}${esProv ? "" : " · " + esc(T.prov)}</span>
-        <span class="small muted">Tu partido ≈${d.afin}% · ${T.P.dep}% de plata de afuera</span></button>`).join("") || '<p class="small muted">Ninguna coincide con el filtro.</p>'}</div>
+        <span class="small muted">${d.etiqueta} (${d.total}) · ${T.L.tipo === "bi" ? `${T.L.dip}+${T.L.sen} bancas` : `${T.L.dip} bancas`}${esProv || SOLO_ENTRE_RIOS ? "" : " · " + esc(T.prov)}</span>
+        <span class="small muted">Tu partido ≈${d.afin}% · ${T.P.dep}% de plata de afuera</span></button>`).join("") || '<p class="small muted">Ninguna coincide con el filtro.</p>'}</div>`}
   </div>`;
 }
 

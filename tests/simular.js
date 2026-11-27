@@ -8,7 +8,7 @@ const motor = [...html.matchAll(/<script src="js\/([^"]+)"><\/script>/g)].map(m 
 function nuevo() {
   const ctx = { console, Math, localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} } };
   vm.createContext(ctx);
-  vm.runInContext(motor.map(f => fs.readFileSync(path.join(J, f), "utf8")).join("\n") + "\nthis.get=()=>S;this.PROV=PROVINCIAS;this.vm_semanas=()=>SEMANAS_CAMPANA;this.vm_interna=()=>SEMANA_INTERNA;", ctx);
+  vm.runInContext(motor.map(f => fs.readFileSync(path.join(J, f), "utf8")).join("\n") + "\nthis.get=()=>S;this.PROV=PROVINCIAS;this.CIUDADES_AR=CIUDADES_AR;this.vm_semanas=()=>SEMANAS_CAMPANA;this.vm_interna=()=>SEMANA_INTERNA;", ctx);
   return ctx;
 }
 function campana(ctx) {
@@ -72,16 +72,18 @@ for (let i = 0; i < 16; i++) {
     ctx.terminarTrimestre();
   }
   anotar("presidente " + (S.perdio ? "perdió" : "completó"));
-  // gobernador, intendente y diputado
-  for (const obj of ["gobernador", "intendente", "legislador"]) {
+  // gobernador, intendente, diputado y senador (por Entre Ríos con el foco activado)
+  for (const obj of ["gobernador", "intendente", "legislador", "senador"]) {
     ctx = nuevo();
-    ctx.iniciarPartida({ nombre: "X", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: obj, provincia: ["buenosaires", "cordoba", "tdf", "caba", "santiago", "mendoza", "salta", "chubut"][i % 8], ciudad: ["lamatanza", "laplata", "mardelplata", "bahiablanca", "quilmes", "cordoba", "mendoza", "tucuman"][i % 8], camino: i % 2 ? "fundar" : "sumarse", partido: "MNJ", nombrePartido: "Nuevo Rumbo", tipoInterna: null, era: "hoy" });
+    ctx.iniciarPartida({ nombre: "X", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: obj === "senador" ? "legislador" : obj, camaraLeg: obj === "senador" ? "sen" : "dip", provincia: ["buenosaires", "cordoba", "tdf", "caba", "santiago", "mendoza", "salta", "chubut"][i % 8], ciudad: ctx.CIUDADES_AR[i % ctx.CIUDADES_AR.length].id, camino: i % 2 ? "fundar" : "sumarse", partido: "MNJ", nombrePartido: "Nuevo Rumbo", tipoInterna: null, era: "hoy" });
     S = ctx.get(); campana(ctx);
     // para probar el gobierno local aunque se pierda la elección, se asume igual
-    if (obj !== "legislador" && S.resultadoGeneral && S.fase === "campana") { S.perdio = false; ctx.iniciarGobiernoLocal(); }
+    if (obj !== "legislador" && obj !== "senador" && S.resultadoGeneral && S.fase === "campana") { S.perdio = false; ctx.iniciarGobiernoLocal(); }
+    // lo mismo para el Congreso: si la lista no entró, se asume con una banca para probar el mandato
+    if ((obj === "legislador" || obj === "senador") && S.resultadoGeneral && S.fase === "campana") { S.perdio = false; S.bancasLista = { yo: 1 }; ctx.iniciarLegislatura(1); anotar(obj + " (entró a prueba)"); }
     if (S.perdio || S.fase === "campana") { anotar(obj + " perdió la campaña"); if (process.env.DEBUG) console.log(S.fase, S.motivoDerrota); continue; }
     for (let g = 0; !S.perdio && !S.terminoMandato && g < 60; g++) {
-      if (obj === "legislador") {
+      if (obj === "legislador" || obj === "senador") {
         S.expLeg.forEach((e, j) => ctx.resolverExpBloque(j, 0));
         S.proyLeg.forEach((p, j) => ctx.resolverProyecto(j, "favor"));
         leyDelMes(ctx);
@@ -97,7 +99,7 @@ for (let i = 0; i < 16; i++) {
 }
 // cada provincia y cada municipio: armar la Legislatura o el Concejo y gobernar un año con leyes
 const PROVS = ["caba", "buenosaires", "catamarca", "cordoba", "corrientes", "chaco", "chubut", "entrerios", "formosa", "jujuy", "lapampa", "larioja", "mendoza", "misiones", "neuquen", "rionegro", "salta", "sanjuan", "sanluis", "santacruz", "santafe", "santiago", "tucuman", "tdf"];
-const CIUDS = ["lamatanza", "laplata", "mardelplata", "bahiablanca", "quilmes", "cordoba", "mendoza", "tucuman"];
+const CIUDS = ["lamatanza", "laplata", "mardelplata", "bahiablanca", "quilmes", "cordoba", "mendoza", "tucuman", "parana", "concordia", "gualeguaychu", "cdeluruguay", "gualeguay", "victoria", "chajari", "villaguay", "lapaz", "colon"];
 for (const [obj, lista] of [["gobernador", PROVS], ["intendente", CIUDS]]) for (const id of lista) {
   const ctx = nuevo();
   ctx.iniciarPartida({ nombre: "X", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: obj, provincia: id, ciudad: id, camino: "sumarse", partido: "UR", tipoInterna: null, era: id === "santafe" ? "2001" : "hoy" });
@@ -113,6 +115,19 @@ for (const [obj, lista] of [["gobernador", PROVS], ["intendente", CIUDS]]) for (
     ctx.finTrimestreLocal();
   }
   anotar("territorio " + obj);
+}
+// el Congreso del legislador suma lo que debe: 257 en Diputados y 72 en el Senado
+for (const cam of ["dip", "sen"]) {
+  const ctx = nuevo();
+  ctx.iniciarPartida({ nombre: "X", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: "legislador", camaraLeg: cam, camino: "sumarse", partido: "MNJ", tipoInterna: null, era: "hoy" });
+  const S = ctx.get();
+  if (ctx.PROV.length !== 17) throw new Error(`el mapa del legislador debería tener los 17 departamentos de Entre Ríos y tiene ${ctx.PROV.length}`);
+  S.bancasLista = cam === "sen" ? { yo: 2, x: 1 } : { yo: 2 };
+  S.candidatos.push({ id: "x", partido: "FC", activo: false });
+  ctx.iniciarLegislatura(2);
+  const tot = Object.values(S.cam).reduce((a, v) => a + v, 0);
+  if (tot !== (cam === "sen" ? 72 : 257)) throw new Error(`${cam}: la cámara suma ${tot}`);
+  anotar("congreso " + cam);
 }
 // campaña presidencial completa con debate (y debate de balotaje si lo hay), en distintas eras
 for (let i = 0; i < 12; i++) {

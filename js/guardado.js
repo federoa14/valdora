@@ -13,7 +13,7 @@ const CLAVE_VIEJA = "valdora_partida";
 function _ls() { try { return typeof localStorage !== "undefined" ? localStorage : null; } catch (e) { return null; } }
 function cargoDe(st) {
   const o = st && st.cfg && st.cfg.objetivo;
-  return o === "gobernador" ? "Gobernador/a" : o === "intendente" ? "Intendente" : o === "legislador" ? "Diputado/a" : "Presidente/a";
+  return o === "gobernador" ? "Gobernador/a" : o === "intendente" ? "Intendente" : o === "legislador" ? ((st && st.cfg && st.cfg.camaraLeg === "sen") ? "Senador/a" : "Diputado/a") : "Presidente/a";
 }
 function metaPartida() {
   const yo = S.jugador || {};

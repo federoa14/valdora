@@ -1,37 +1,64 @@
 // =============================================================
 //  VALDORA - Escala legislador: diputado nacional y jefe de bloque
-//  La campaña es por la lista de Buenos Aires (D'Hondt). En la Cámara
+//  La campaña es por la lista de la provincia (Entre Ríos con el foco
+//  activado): Diputados por D'Hondt o Senado por lista incompleta. En la Cámara
 //  conducís tu bloque: posición en cada votación, disciplina,
 //  negociaciones con la Casa Rosada y los gobernadores, proyectos
 //  propios, interpelaciones, juicio político y sesiones especiales.
 // =============================================================
 
 function esLegislador() { return !!(S && S.cfg && S.cfg.objetivo === "legislador"); }
-const BANCAS_GR = 35; // Buenos Aires renueva 35 de sus 70 diputados
+// Cámara del jugador: Diputados (257) o Senado (72), con su distrito
+function camLeg() {
+  const sen = !!(S && S.cfg && S.cfg.camaraLeg === "sen");
+  const D = DISTRITO_LEG[PROV_LEG] || DISTRITO_LEG.buenosaires;
+  return sen
+    ? { sen: true, total: 72, nombre: "Senado", miembro: "senador", miembros: "senadores", bancas: 3, prov: PROVINCIAS_JUGABLES[PROV_LEG].nombre,
+        base: { MNJ: 33, UR: 13, FC: 8, LY: 7, PROV: 11 } }
+    : { sen: false, total: 257, nombre: "Cámara de Diputados", miembro: "diputado", miembros: "diputados", bancas: D.dipRenueva, prov: PROVINCIAS_JUGABLES[PROV_LEG].nombre,
+        base: { MNJ: 96, FC: 72, UR: 38, LY: 26, FT: 5, PROV: 20 } };
+}
+// Senado: lista incompleta, 2 bancas para el primero y 1 para el segundo
+function repartoSenado(votos) {
+  const o = Object.entries(votos).sort((a, b) => b[1] - a[1]), r = {};
+  if (o[0]) r[o[0][0]] = 2;
+  if (o[1]) r[o[1][0]] = 1;
+  return r;
+}
+// Los textos del bloque están escritos para Diputados: para un senador se adaptan
+function txtCam(t) {
+  if (!t || !esLegislador() || !camLeg().sen) return t;
+  return String(t).replace(/Cámara de Diputados/g, "Senado").replace(/diputados nacionales/g, "senadores nacionales").replace(/diputado nacional/g, "senador nacional")
+    .replace(/diputados/g, "senadores").replace(/diputado/g, "senador").replace(/Diputado/g, "Senador");
+}
 
 const _eleccionGeneralLeg = eleccionGeneral;
 eleccionGeneral = function () {
   if (!esLegislador()) return _eleccionGeneralLeg();
+  const C = camLeg();
   const cands = S.candidatos.filter(c => c.activo);
   const res = resultadosNacionales(cands);
   S.resultadoGeneral = res;
   const votos = {};
-  for (const id in res.nac) if (res.nac[id] >= 3) votos[id] = res.nac[id];
-  const bancas = dHondt(votos, BANCAS_GR);
+  if (C.sen) Object.assign(votos, res.nac);
+  else for (const id in res.nac) if (res.nac[id] >= 3) votos[id] = res.nac[id];
+  const bancas = C.sen ? repartoSenado(votos) : dHondt(votos, C.bancas);
   S.bancasLista = bancas;
   const texto = Object.entries(res.nac).sort((a, b) => b[1] - a[1]).map(([id, v]) => {
     const c = S.candidatos.find(x => x.id === id);
     return `${c.nombre} (${PARTIDOS[c.partido].corto}) ${fmt(v)}%: ${bancas[id] || 0} ${bancas[id] === 1 ? "banca" : "bancas"}`;
   }).join(" · ");
+  const titulo = C.sen ? `Senadores por ${C.prov}` : `Diputados por ${C.prov}`;
   const mias = bancas.yo || 0;
   if (!mias) {
-    S.perdio = true; S.motivoDerrota = `Diputados por Buenos Aires: ${texto}. Tu lista no llegó al umbral del 3% o no alcanzó para una banca.`;
+    S.perdio = true; S.motivoDerrota = `${titulo}: ${texto}. ${C.sen ? "Tu lista no salió primera ni segunda: el Senado reparte 2 bancas al ganador y 1 a la minoría." : "Tu lista no llegó al umbral del 3% o no alcanzó para una banca."}`;
     log(S.motivoDerrota, "malo");
     return { titulo: "Resultado electoral", texto: S.motivoDerrota, tipo: "malo" };
   }
-  log(`Diputados por Buenos Aires: ${texto}. Encabezás la lista: sos diputado nacional.`, "bueno");
+  log(`${titulo}: ${texto}. Encabezás la lista: sos ${C.miembro} nacional.`, "bueno");
   iniciarLegislatura(mias);
-  return { titulo: "¡Entraste a la Cámara!", texto: `Diputados por Buenos Aires (35 bancas, sistema D'Hondt, umbral 3%): ${texto}. Tu lista metió ${mias} ${mias === 1 ? "banca" : "bancas"} y tus compañeros te eligen presidente del bloque.`, tipo: "bueno" };
+  const sistema = C.sen ? "3 bancas: 2 para la lista más votada y 1 para la segunda" : `${C.bancas} bancas, sistema D'Hondt, umbral 3%`;
+  return { titulo: C.sen ? "¡Entraste al Senado!" : "¡Entraste a la Cámara!", texto: `${titulo} (${sistema}): ${texto}. ${C.sen ? (mias === 2 ? "Tu lista ganó y se queda con la mayoría de la provincia." : "Entraste por la minoría.") : `Tu lista metió ${mias} ${mias === 1 ? "banca" : "bancas"}.`} Tu bloque te elige presidente.`, tipo: "bueno" };
 };
 
 // ---------- Inicio del mandato ----------
@@ -39,16 +66,18 @@ function iniciarLegislatura(mias) {
   const yo = S.jugador;
   S.fase = "legislador";
   S.trimestre = 1; S.mes = 1; S.paso = 1 / 3;
-  // Cámara de 257: el resto viene de otras provincias y del turno anterior
-  const base = { MNJ: 96, FC: 72, UR: 38, LY: 26, FT: 5, PROV: 20 };
-  const resto = 257 - BANCAS_GR;
+  // el resto de la Cámara viene de otras provincias y del turno anterior
+  const C = camLeg(), base = C.base;
+  const nuevas = Object.values(S.bancasLista).reduce((a, v) => a + v, 0);
+  const resto = C.total - nuevas;
   const totBase = Object.values(base).reduce((a, v) => a + v, 0);
   const cam = {};
   for (const k in base) cam[k] = Math.round(base[k] * resto / totBase);
   for (const id in S.bancasLista) { const p = S.candidatos.find(c => c.id === id).partido; cam[p] = (cam[p] || 0) + S.bancasLista[id]; }
   // ajustar al total exacto
   let suma = Object.values(cam).reduce((a, v) => a + v, 0);
-  cam.MNJ += 257 - suma;
+  cam.MNJ += C.total - suma;
+  S.camTotal = C.total;
   S.cam = cam;
   // presidente de la Nación (exógeno)
   const opciones = ["MNJ", "FC", "UR", "LY"];
@@ -70,7 +99,7 @@ function iniciarLegislatura(mias) {
   S.accionesLeg = 1;
   S.hist = [{ t: 0, ...S.leg2 }];
   generarAgendaLeg();
-  log(`Juraste como diputado nacional. Tu bloque (${PARTIDOS[yo.partido].corto}) tiene ${cam[yo.partido]} de 257 bancas. El presidente de la Nación es del ${PARTIDOS[S.presNac.partido].corto}: ${S.oficialismo ? "sos oficialismo" : "sos oposición"}.`, "info");
+  log(`Juraste como ${C.miembro} nacional por ${C.prov}. Tu bloque (${PARTIDOS[yo.partido].corto}) tiene ${cam[yo.partido]} de ${C.total} bancas. El presidente de la Nación es del ${PARTIDOS[S.presNac.partido].corto}: ${S.oficialismo ? "sos oficialismo" : "sos oposición"}.`, "info");
 }
 
 // ---------- Proyectos que llegan al recinto ----------
@@ -216,9 +245,9 @@ function votarRecinto(pr, postura) {
     detalle.push({ bloque: k, si: bSi, no: bNo, aus: bAus });
     si += bSi; no += bNo; aus += bAus;
   }
-  const quorum = si + no >= 129;
+  const quorum = si + no >= Math.floor(camLeg().total / 2) + 1;
   const necesario = Math.floor((si + no) / 2) + 1;
-  return { camara: "dip", si, no, aus, quorum, necesario, aprobado: quorum && si >= necesario, detalle };
+  return { camara: camLeg().sen ? "sen" : "dip", si, no, aus, quorum, necesario, aprobado: quorum && si >= necesario, detalle };
 }
 
 function resolverProyecto(idx, postura) {
@@ -277,7 +306,7 @@ function resolverExpBloque(idx, op) {
   aplicarLeg(o.fx);
   if (o.dif) for (const df of o.dif) S.diferidosLeg.push({ t: S.trimestre + df.en, texto: df.texto, fx: df.fx, origen: d.titulo });
   let msg = "";
-  if (o.bancas) { S.cam[S.jugador.partido] += o.bancas; S.cam.PROV += -o.bancas; msg = "Se fue un diputado y armó un monobloque."; }
+  if (o.bancas) { S.cam[S.jugador.partido] += o.bancas; S.cam.PROV += -o.bancas; msg = `Se fue un ${camLeg().miembro} y armó un monobloque.`; }
   if (o.especial === "comisionPres") {
     if (R.rand() < 0.3 + S.leg2.influencia / 150) { S.comisionPres = true; aplicarLeg({ influencia: 8 }); msg = "Ganaste la presidencia de la comisión de Presupuesto y Hacienda: tus proyectos consiguen dictamen más fácil."; }
     else { aplicarLeg({ influencia: -3 }); msg = "Perdiste la pulseada: la comisión quedó para otro bloque."; }
@@ -328,7 +357,7 @@ function accionLeg(tipo, arg) {
     }
     case "reunion": aplicarLeg({ disciplina: 8 + (yo.negociacion - 5), recursos: -1 }); msg = "Asado con el bloque: repartiste lugares y escuchaste quejas. La tropa se ordena."; break;
     case "gobernadores": if (L.recursos < 1) { S.accionesLeg++; return { msg: "No tenés favores para repartir. Negociá algo con el Ejecutivo primero.", tipo: "aviso" }; }
-      aplicarLeg({ recursos: -1, disciplina: 6, influencia: 2 }); msg = "Repartiste obras entre los gobernadores de tu espacio: sus diputados te responden."; break;
+      aplicarLeg({ recursos: -1, disciplina: 6, influencia: 2 }); msg = `Repartiste obras entre los gobernadores de tu espacio: sus ${camLeg().miembros} te responden.`; break;
     case "medios": {
       const ok = R.rand() < 0.35 + yo.oratoria / 15;
       aplicarLeg(ok ? { imagen: 5, disciplina: -1 } : { imagen: -3 });
@@ -337,15 +366,15 @@ function accionLeg(tipo, arg) {
     case "interpelar": {
       const apoyo = Object.entries(S.cam).filter(([k]) => k !== S.presNac.partido).reduce((a, [k, n]) => a + (k === yo.partido ? n : n * R.clamp(0.4 + (S.relBloques[k] || 0) / 100, 0, 1)), 0);
       if (S.oficialismo) { S.accionesLeg++; return { msg: "No podés interpelar a tu propio gobierno sin romper con el presidente.", tipo: "aviso" }; }
-      if (apoyo >= 129) { aplicarLeg({ imagen: 4, influencia: 5, relPres: -15 }); S.presNac.imagen -= 3; msg = "Lograste la interpelación al Jefe de Gabinete (art. 101). Pasó una tarde a la defensiva en el recinto."; t = "bueno"; }
+      if (apoyo >= Math.floor(camLeg().total / 2) + 1) { aplicarLeg({ imagen: 4, influencia: 5, relPres: -15 }); S.presNac.imagen -= 3; msg = "Lograste la interpelación al Jefe de Gabinete (art. 101). Pasó una tarde a la defensiva en el recinto."; t = "bueno"; }
       else { aplicarLeg({ influencia: -2 }); msg = "No juntaste la mayoría para la interpelación."; t = "malo"; }
       break;
     }
     case "juicio": {
       if (S.oficialismo) { S.accionesLeg++; return { msg: "Tu bloque no va a acusar a su propio presidente.", tipo: "aviso" }; }
       const apoyo = Object.entries(S.cam).filter(([k]) => k !== S.presNac.partido).reduce((a, [k, n]) => a + (k === yo.partido ? n * L.disciplina / 100 : n * R.clamp(0.2 + (S.relBloques[k] || 0) / 120 + (50 - S.presNac.imagen) / 100, 0, 1)), 0);
-      const nec = Math.ceil(257 * 2 / 3);
-      if (apoyo >= nec) { S.presNac.imagen -= 15; aplicarLeg({ influencia: 15, relPres: -40 }); msg = `La Cámara acusó al presidente ante el Senado con ${Math.round(apoyo)} votos (se necesitaban ${nec}). El país entra en crisis política.`; t = "aviso"; }
+      const nec = Math.ceil(camLeg().total * 2 / 3);
+      if (apoyo >= nec) { S.presNac.imagen -= 15; aplicarLeg({ influencia: 15, relPres: -40 }); msg = camLeg().sen ? `Diputados acusó y el Senado, constituido en tribunal, juntó ${Math.round(apoyo)} votos para destituir al presidente (se necesitaban ${nec}). El país entra en crisis política.` : `La Cámara acusó al presidente ante el Senado con ${Math.round(apoyo)} votos (se necesitaban ${nec}). El país entra en crisis política.`; t = "aviso"; }
       else { aplicarLeg({ imagen: -4, influencia: -4, relPres: -20 }); msg = `El pedido de juicio político juntó ${Math.round(apoyo)} votos de los ${nec} necesarios. Te acusan de golpista.`; t = "malo"; }
       break;
     }
@@ -371,7 +400,7 @@ function votarPropio(T, sinDictamen, pasos) {
   const necesario = sinDictamen ? Math.ceil((v.si + v.no) * 2 / 3) : v.necesario;
   v.necesario = necesario; v.aprobado = v.quorum && v.si >= necesario;
   let msg;
-  if (v.aprobado) { S.leg2.leyesPropias++; aplicarLeg({ influencia: 5, imagen: T.pop * 0.8 }); msg = `¡Media sanción! Tu proyecto "${T.nombre}" se aprobó${sinDictamen ? " sobre tablas con dos tercios" : ""} y pasa al Senado.`; log(msg, "bueno"); }
+  if (v.aprobado) { S.leg2.leyesPropias++; aplicarLeg({ influencia: 5, imagen: T.pop * 0.8 }); msg = `¡Media sanción! Tu proyecto "${T.nombre}" se aprobó${sinDictamen ? " sobre tablas con dos tercios" : ""} y pasa ${camLeg().sen ? "a Diputados" : "al Senado"}.`; log(msg, "bueno"); }
   else { aplicarLeg({ influencia: -2 }); msg = `Tu proyecto "${T.nombre}" no consiguió los votos${sinDictamen ? " (sin dictamen hacían falta dos tercios)" : ""}.`; log(msg, "malo"); }
   return msg;
 }
@@ -420,13 +449,13 @@ function finTrimestreLeg() {
     const se = Math.max(1, Math.round(S.cam[yo.partido] * 0.25));
     S.cam[yo.partido] -= se; S.cam.PROV += se;
     aplicarLeg({ influencia: -8 });
-    ev.push({ titulo: "Se parte el bloque", texto: `${se} diputados se van y arman su propio bloque. Te quedan ${S.cam[yo.partido]}.`, tipo: "malo" });
+    ev.push({ titulo: "Se parte el bloque", texto: `${se} ${camLeg().miembros} se van y arman su propio bloque. Te quedan ${S.cam[yo.partido]}.`, tipo: "malo" });
     if (S.cam[yo.partido] <= 0 || (L.disciplina < 10 && R.rand() < 0.5)) {
-      S.perdio = true; S.motivoDerrota = "Tu bloque te desconoció como presidente y eligió otro jefe. Terminás el mandato como diputado raso, sin poder."; ev.push({ titulo: "Destituido como jefe de bloque", texto: S.motivoDerrota, tipo: "malo" }); return ev;
+      S.perdio = true; S.motivoDerrota = "Tu bloque te desconoció como presidente y eligió otro jefe. Terminás el mandato como " + camLeg().miembro + " raso, sin poder."; ev.push({ titulo: "Destituido como jefe de bloque", texto: S.motivoDerrota, tipo: "malo" }); return ev;
     }
   }
   if (cierre && L.disciplina < 40 && R.rand() < (40 - L.disciplina) / 80) {
-    S.perdio = true; S.motivoDerrota = "Un sector del bloque te desafió en una reunión a puertas cerradas y ganó: eligen otro presidente de bloque. Seguís como diputado raso."; ev.push({ titulo: "Te sacan la jefatura", texto: S.motivoDerrota, tipo: "malo" }); return ev;
+    S.perdio = true; S.motivoDerrota = "Un sector del bloque te desafió en una reunión a puertas cerradas y ganó: eligen otro presidente de bloque. Seguís como " + camLeg().miembro + " raso."; ev.push({ titulo: "Te sacan la jefatura", texto: S.motivoDerrota, tipo: "malo" }); return ev;
   }
   if (cierre && L.imagen < 10) { S.perdio = true; S.motivoDerrota = "Tu imagen se desplomó y el partido te pide un paso al costado: renunciás a la presidencia del bloque."; ev.push({ titulo: "Renuncia", texto: S.motivoDerrota, tipo: "malo" }); return ev; }
   // medio término
