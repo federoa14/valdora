@@ -25,8 +25,22 @@ function campana(ctx) {
       else if (r < 0.6) ctx.ejecutarAccion("recorrida", { prov: ids[Math.floor(Math.random() * ids.length)] });
       else ctx.ejecutarAccion("militantes", {});
     }
+    // el debate televisado: a veces se juega eligiendo respuestas al azar, a veces queda en piloto automático
+    if (ctx.debatePendiente() && Math.random() < 0.7) jugarDebate(ctx);
     ctx.terminarSemana();
   }
+}
+function jugarDebate(ctx) {
+  const S = ctx.get(); let g = 0;
+  if (Math.random() < 0.05) { ctx.faltarDebate(); return; }
+  while (S.debate.estado === "pendiente" && g++ < 30) {
+    if (S.debate.fase === "pregunta") { const p = ctx.debatePreguntaActual(); if (!p || p.r.length !== 3) throw new Error("pregunta de debate inválida"); ctx.responderDebate(Math.floor(Math.random() * 3)); }
+    else if (S.debate.fase === "replica") ctx.replicarDebate(Math.floor(Math.random() * 3));
+    else ctx.cerrarDebate();
+  }
+  if (S.debate.estado !== "cerrado") throw new Error("el debate no terminó");
+  for (const c of S.candidatos) { for (const k in c.sym) if (!isFinite(c.sym[k])) throw new Error("simpatía inválida tras el debate"); if (!isFinite(c.imagen)) throw new Error("imagen inválida tras el debate"); }
+  anotar("debate jugado " + (S.debate.tipo));
 }
 function leyDelMes(ctx) {
   const cat = ctx.catalogoSegunCargo();
@@ -93,6 +107,16 @@ for (const [obj, lista] of [["gobernador", PROVS], ["intendente", CIUDS]]) for (
     ctx.finTrimestreLocal();
   }
   anotar("territorio " + obj);
+}
+// campaña presidencial completa con debate (y debate de balotaje si lo hay), en distintas eras
+for (let i = 0; i < 12; i++) {
+  const ctx = nuevo();
+  ctx.iniciarPartida({ nombre: "P", ideo: [20, 50, 80][i % 3], carisma: 3 + (i % 6), oratoria: 9 - (i % 6), gestion: 6, negociacion: 6, camino: i % 4 === 0 ? "fundar" : "sumarse", partido: ["MNJ", "UR", "FC", "LY"][i % 4], nombrePartido: "Nuevo Rumbo", era: ["hoy", "2001", "1989", "2015", "1983"][i % 5] });
+  const S = ctx.get();
+  if (i % 3 === 0) { S.riesgo = 40; S.favores.push({ aportante: "Constructora Del Plata S.A.", favor: "obra", cumplido: false }); }
+  campana(ctx);
+  if (!S.debate && !S.perdio) throw new Error("la campaña presidencial terminó sin debate");
+  anotar("campaña presidencial " + (S.fase === "gobierno" ? "ganada" : "perdida"));
 }
 console.log(res);
 console.log("OK: sin errores en", Object.values(res).reduce((a, v) => a + v, 0), "partidas.");
