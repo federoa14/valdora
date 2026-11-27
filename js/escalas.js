@@ -274,9 +274,13 @@ function fxLocal(fx) {
   const P = S.presidente, yo = S.jugador;
   switch (tipo) {
     case "pedirNacion": {
-      const p = 0.3 + P.relacion / 150 + (P.partido === yo.partido ? 0.2 : 0);
-      if (R.rand() < p) { aplicarLocal({ caja: 15, tension: -3 }); P.relacion -= 5; return { msg: "La Casa Rosada giró fondos. Te los va a cobrar en votos en el Congreso.", tipo: "bueno" }; }
-      aplicarLocal({ imagen: -2 }); return { msg: "La Nación te dejó sin respuesta. Tenés que arreglarte solo.", tipo: "malo" };
+      // el intendente le pide a la provincia; el gobernador, a la Nación (ver relaciones.js)
+      const prov = S.cfg.objetivo === "intendente" && S.gest && S.gest.gobProv;
+      const Q = prov ? S.gest.gobProv : P;
+      const peso = typeof pesoPropioLocal === "function" ? (pesoPropioLocal().total - 25) / 200 : 0;
+      const p = 0.3 + Q.relacion / 150 + (Q.partido === yo.partido ? 0.2 : 0) + peso;
+      if (R.rand() < p) { aplicarLocal({ caja: 15, tension: -3 }); Q.relacion -= 5; if (Q.partido === yo.partido) Q.favores = (Q.favores || 0) + 1; return { msg: prov ? "El gobernador giró los fondos. Te lo va a cobrar." : "La Casa Rosada giró fondos. Te los va a cobrar en votos en el Congreso.", tipo: "bueno" }; }
+      aplicarLocal({ imagen: -2 }); return { msg: prov ? "El gobernador no te atendió. Tenés que arreglarte solo." : "La Nación te dejó sin respuesta. Tenés que arreglarte solo.", tipo: "malo" };
     }
     case "gendarmeria": {
       if (P.relacion > -20) { aplicarLocal({ inseguridad: -4, legitimidad: -2 }); return { msg: "Llegan gendarmes. Los saqueos paran, pero tu policía queda humillada.", tipo: "info" }; }

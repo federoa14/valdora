@@ -59,7 +59,7 @@ function renderGobiernoLocal() {
   const I = S.ind, yo = S.jugador, gob = S.cfg.objetivo === "gobernador";
   UI.tabLoc = UI.tabLoc || "despacho";
   const pend = S.expedientesLocal.filter(e => !e.resuelto).length;
-  const tabs = [["despacho", `Despacho${pend ? " (" + pend + ")" : ""}`], ["resumen", "Estadísticas"], ["presupuesto", "Presupuesto"], ["leg", gob ? "Legislatura" : "Concejo Deliberante"], ["leyes", gob ? "Leyes" : "Ordenanzas"], ["boletin", "Boletín Oficial"], ["conflictos", `Conflictos${conflictosActivos().length ? " (" + conflictosActivos().length + ")" : ""}`], ["nacion", gob ? "Relación con la Nación" : "Provincia y Nación"], ["territorio", gob ? "Ficha de la provincia" : "Ficha del municipio"]];
+  const tabs = [["despacho", `Despacho${pend ? " (" + pend + ")" : ""}`], ["resumen", "Estadísticas"], ["presupuesto", "Presupuesto"], ["leg", gob ? "Legislatura" : "Concejo Deliberante"], ["leyes", gob ? "Leyes" : "Ordenanzas"], ["boletin", "Boletín Oficial"], ["conflictos", `Conflictos${conflictosActivos().length ? " (" + conflictosActivos().length + ")" : ""}`], ["nacion", `${gob ? "Gestiones ante la Nación" : "Gestiones ante la provincia"}${typeof pendientesRelLocal === "function" && pendientesRelLocal() ? " (" + pendientesRelLocal() + ")" : ""}`], ["territorio", gob ? "Ficha de la provincia" : "Ficha del municipio"]];
   const P = S.presidente;
   let cuerpo = "";
   if (UI.tabLoc === "despacho") {
@@ -95,16 +95,7 @@ function renderGobiernoLocal() {
       <div class="row" style="margin-top:10px"><button class="sec" id="lNegociar" ${S.medidasEsteTrimestre >= 1 ? "disabled" : ""}>Repartir cargos y obras con la oposición</button></div>
       <p class="small muted">Mejora la relación con todos los bloques opositores a cambio de caja.</p>`;
   } else if (UI.tabLoc === "nacion") {
-    cuerpo = `<p>El presidente es del <b>${PARTIDOS[P.partido].nombre}</b>. Relación con la Casa Rosada: <b>${Math.round(P.relacion)}</b> (de -100 a 100).</p>
-      <p class="small muted">De la Nación dependen los ATN, los fondos de emergencia, las obras y las fuerzas federales. Pelearte da imagen local pero cierra la canilla.</p>
-      <div class="opciones">
-        <button class="opcion" data-nac="alinear"><b>Alinearte con el presidente</b><span class="small muted">Prometés votos de tus legisladores nacionales.</span></button>
-        <button class="opcion" data-nac="enfrentar"><b>Enfrentar a la Casa Rosada</b><span class="small muted">Denunciás discriminación en el reparto.</span></button>
-        <button class="opcion" data-nac="atn"><b>Pedir un ATN</b><span class="small muted">Aportes del Tesoro Nacional: discrecionales.</span></button>
-        <button class="opcion" data-nac="deuda"><b>Tomar deuda</b><span class="small muted">Entra caja, suben los vencimientos.</span></button>
-        <button class="opcion" data-nac="tasa"><b>${gob ? "Subir ingresos brutos e inmobiliario" : "Subir la tasa municipal"}</b><span class="small muted">Lo vota ${cuerpoLocal()}.</span></button>
-      </div>
-      <p class="small muted">Una gestión grande por mes (${S.medidasEsteTrimestre ? "ya la usaste" : "disponible"}).</p>`;
+    cuerpo = htmlRelacionesLocal();
   }
   if (UI.tabLoc === "territorio") cuerpo = htmlFichaEnJuego();
   if (UI.tabLoc === "leyes") cuerpo = htmlLeyes();
@@ -121,6 +112,7 @@ function renderGobiernoLocal() {
   bindBoletin(renderGobiernoLocal);
   bindGestion(renderGobiernoLocal);
   bindLeyes(renderGobiernoLocal);
+  if (UI.tabLoc === "nacion") bindRelacionesLocal(renderGobiernoLocal);
   document.querySelectorAll("[data-lexp]").forEach(b => b.onclick = () => {
     const r = resolverExpLocal(+b.dataset.lexp, +b.dataset.lop);
     if (r.msg || (r.pasos && r.pasos.length)) colaEventos([{ titulo: "Resultado", texto: r.msg || "Hecho.", pasos: r.pasos, tipo: r.tipo || "info" }], renderGobiernoLocal);

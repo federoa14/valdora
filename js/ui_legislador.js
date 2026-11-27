@@ -8,10 +8,11 @@ renderEstado = function () {
   const L = S.leg2, etM = etiquetaMes(S.mes || 1);
   $("#estado").innerHTML = `
     <span class="pill">${etM} de 48</span>
+    <span class="pill" title="Peso político dentro del Congreso">Peso <b>${S.pl ? Math.round(S.pl.peso) : "-"}</b></span>
     <span class="pill">Influencia <b>${Math.round(L.influencia)}</b></span>
     <span class="pill">Disciplina <b>${Math.round(L.disciplina)}</b></span>
     <span class="pill">Imagen <b>${Math.round(L.imagen)}%</b></span>
-    <span class="pill">Acción del mes <b>${S.accionesLeg ? "disponible" : "usada"}</b></span>`;
+    <span class="pill">Acciones del mes <b>${S.accionesLeg}</b></span>`;
 };
 
 const _renderJuegoLeg = renderJuego;
@@ -40,7 +41,7 @@ function renderLegislador() {
   const L = S.leg2, yo = S.jugador;
   UI.tabLeg = UI.tabLeg || "recinto";
   const pend = S.proyLeg.filter(p => !p.resuelto).length + S.expLeg.filter(e => !e.resuelto).length;
-  const tabs = [["recinto", `Recinto y bloque${pend ? " (" + pend + ")" : ""}`], ["acciones", "Acciones del jefe de bloque"], ["leyes", "Leyes propias"], ["camara", "La Cámara"], ["resumen", "Tu carrera"]];
+  const tabs = [["recinto", `Recinto y bloque${pend ? " (" + pend + ")" : ""}`], ["acciones", "Acciones del jefe de bloque"], ["leyes", "Leyes propias"], ["peso", `Peso y negociación${S.pl && S.pl.cobros.some(c => !c.resuelto) ? " (!)" : ""}`], ["camara", "La Cámara"], ["resumen", "Tu carrera"]];
   let cuerpo = "";
   if (UI.tabLeg === "recinto") {
     cuerpo = `<p class="small muted">Este mes se vota este proyecto. Vos fijás la línea del bloque: cuanto más baja la disciplina y más lejos está el proyecto de la identidad del partido, más diputados tuyos se dan vuelta o se ausentan. ${S.oficialismo ? "Sos oficialismo: el presidente espera tus votos." : "Sos oposición: el Ejecutivo necesita negociar con vos."}</p>
@@ -64,7 +65,7 @@ function renderLegislador() {
       }).join("")}</div>`;
   } else if (UI.tabLeg === "acciones") {
     const sin = S.accionesLeg <= 0 ? "disabled" : "";
-    cuerpo = `<p class="small muted">Una acción por mes. Los proyectos propios van a comisión y necesitan dictamen; con una sesión especial los podés tratar sin dictamen, pero entonces hacen falta dos tercios.</p>
+    cuerpo = `<p class="small muted">${S.accionesLeg} ${S.accionesLeg === 1 ? "acción disponible" : "acciones disponibles"} este mes (con más peso político tenés más). Los proyectos propios van a comisión y necesitan dictamen; con una sesión especial los podés tratar sin dictamen, pero entonces hacen falta dos tercios.</p>
       <div class="expediente stack"><h3>Presentar un proyecto propio</h3>
         <div class="row"><select id="lTema">${TEMAS_PROPIOS.map(t => `<option value="${t.id}">${esc(t.nombre)}</option>`).join("")}</select><button id="lPresentar" ${sin}>Presentar</button></div>
         ${S.propiosEnComision.length ? `<p class="small">En comisión: ${S.propiosEnComision.map(pc => esc(TEMAS_PROPIOS.find(t => t.id === pc.id).nombre)).join(", ")}.${S.comisionPres ? " Presidís Presupuesto y Hacienda: los dictámenes salen más fácil." : ""}</p>` : ""}
@@ -93,6 +94,7 @@ function renderLegislador() {
   }
   cuerpo = txtCam(cuerpo); // para un senador, los textos del bloque hablan del Senado
   if (UI.tabLeg === "leyes") cuerpo = htmlLeyes();
+  if (UI.tabLeg === "peso") cuerpo = htmlPesoLeg();
   app.innerHTML = `
     <div class="card stack">
       <div class="row" style="justify-content:space-between;align-items:center"><h2>Bloque ${esc(PARTIDOS[yo.partido].nombre)} · ${S.cam[yo.partido]} ${camLeg().miembros}</h2><button id="legFin">Terminar el mes ▸</button></div>
@@ -104,6 +106,7 @@ function renderLegislador() {
   const mostrar = r => { if (!r) return volver(); colaEventos([{ titulo: "Resultado", texto: r.msg, pasos: r.pasos, tipo: r.tipo || "info" }], volver); };
   document.querySelectorAll("[data-legtab]").forEach(b => b.onclick = () => { UI.tabLeg = b.dataset.legtab; volver(); });
   bindLeyes(volver);
+  if (UI.tabLeg === "peso") bindPesoLeg(volver);
   document.querySelectorAll("[data-pr]").forEach(b => b.onclick = () => mostrar(resolverProyecto(+b.dataset.pr, b.dataset.post)));
   const mostrarTxt = r => mostrar(r && { ...r, msg: txtCam(r.msg) });
   document.querySelectorAll("[data-eb]").forEach(b => b.onclick = () => mostrarTxt(resolverExpBloque(+b.dataset.eb, +b.dataset.ebo)));

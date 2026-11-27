@@ -8,7 +8,7 @@ const motor = [...html.matchAll(/<script src="js\/([^"]+)"><\/script>/g)].map(m 
 function nuevo() {
   const ctx = { console, Math, localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} } };
   vm.createContext(ctx);
-  vm.runInContext(motor.map(f => fs.readFileSync(path.join(J, f), "utf8")).join("\n") + "\nthis.get=()=>S;this.PROV=PROVINCIAS;this.CIUDADES_AR=CIUDADES_AR;this.vm_semanas=()=>SEMANAS_CAMPANA;this.vm_interna=()=>SEMANA_INTERNA;", ctx);
+  vm.runInContext(motor.map(f => fs.readFileSync(path.join(J, f), "utf8")).join("\n") + "\nthis.get=()=>S;this.PROV=PROVINCIAS;this.CIUDADES_AR=CIUDADES_AR;this.vm_semanas=()=>SEMANAS_CAMPANA;this.vm_interna=()=>SEMANA_INTERNA;this.TEMAS=()=>TEMAS_PROPIOS;", ctx);
   return ctx;
 }
 function campana(ctx) {
@@ -56,6 +56,36 @@ function leyDelMes(ctx) {
   if (E && E.vetoPend) ctx.resolverVetoLey(["promulgar", "parcial", "vetar"][Math.floor(Math.random() * 3)]);
 }
 
+// gestiones ante el superior: pedir, aceptar o rechazar condiciones, insistir, denunciar y pagar facturas
+function jugarGestiones(ctx) {
+  const S = ctx.get(), g = ctx.asegurarGest();
+  if (!g) throw new Error("sin estado de gestiones en el gobierno local");
+  for (const c of g.cobros.filter(x => !x.resuelto)) ctx.resolverCobroSup(c.uid, ["cumplir", "negociar", "negarse"][Math.floor(Math.random() * 3)]);
+  for (const t of g.tram) {
+    if (t.estado === "condicionado") ctx.aceptarCondicion(t.uid, Math.random() < 0.7);
+    else if (t.estado === "negado" && !t.denunciado && Math.random() < 0.3) ctx.denunciarGestion(t.uid);
+    else if (t.estado === "tramite" && t.demoras && Math.random() < 0.3) ctx.insistirGestion(t.uid);
+  }
+  const tipos = ctx.tiposGestionCargo();
+  ctx.presentarGestion(tipos[Math.floor(Math.random() * tipos.length)].id);
+  if (Math.random() < 0.3) ctx.posturaSup(Math.random() < 0.7 ? "sup" : "nac", ["alinear", "enfrentar", "reunion"][Math.floor(Math.random() * 3)]);
+  for (const k of ["caja", "imagen", "tension", "pobreza"]) if (!isFinite(S.ind[k])) throw new Error("indicador inválido tras las gestiones: " + k);
+  for (const s of [S.presidente, g.gobProv].filter(Boolean)) if (!isFinite(s.relacion) || !isFinite(s.caja) || !isFinite(s.imagen)) throw new Error("superior con valores inválidos");
+}
+// legislador: negociar apoyos, pelear comisiones y pagar promesas
+function jugarPeso(ctx) {
+  const S = ctx.get(), pl = ctx.asegurarPeso();
+  if (!pl) throw new Error("sin estado de peso en el legislador");
+  for (const c of pl.cobros.filter(x => !x.resuelto)) ctx.resolverCobroLeg(c.uid, ["cumplir", "favores", "incumplir"][Math.floor(Math.random() * 3)]);
+  if (S.accionesLeg > 0 && S.propiosEnComision.length < 3) { const t = ctx.TEMAS()[Math.floor(Math.random() * ctx.TEMAS().length)]; ctx.accionLeg("proyecto", t.id); }
+  for (const pc of S.propiosEnComision) {
+    const clave = "tema:" + pc.id;
+    for (const c of ctx.contrapartesNeg(clave).filter(c => !c.hecha)) { if (pl.rondas <= 0) break; ctx.negociarApoyo(clave, c.id, c.ops[Math.floor(Math.random() * c.ops.length)]); }
+  }
+  if (pl.rondas > 0 && Math.random() < 0.3) ctx.pedirComision(["presupuesto", "salud", "penal", "federal"][Math.floor(Math.random() * 4)], Math.random() < 0.5 ? "pres" : "vocal");
+  if (!isFinite(pl.peso) || pl.peso < 0 || pl.peso > 100) throw new Error("peso inválido: " + pl.peso);
+}
+
 const res = {};
 function anotar(k) { res[k] = (res[k] || 0) + 1; }
 
@@ -85,11 +115,13 @@ for (let i = 0; i < 16; i++) {
     for (let g = 0; !S.perdio && !S.terminoMandato && g < 60; g++) {
       if (obj === "legislador" || obj === "senador") {
         S.expLeg.forEach((e, j) => ctx.resolverExpBloque(j, 0));
-        S.proyLeg.forEach((p, j) => ctx.resolverProyecto(j, "favor"));
+        S.proyLeg.forEach((p, j) => ctx.resolverProyecto(j, ["favor", "negociar", "contra"][Math.floor(Math.random() * 3)]));
+        jugarPeso(ctx);
         leyDelMes(ctx);
         ctx.finTrimestreLeg();
       } else {
         S.expedientesLocal.forEach((e, j) => { if (!e.resuelto) ctx.resolverExpLocal(j, 1); });
+        jugarGestiones(ctx);
         leyDelMes(ctx);
         ctx.finTrimestreLocal();
       }
@@ -196,6 +228,119 @@ function assert(c, msg) { if (!c) throw new Error("Trayectoria: " + msg); }
   const prom = a => a.reduce((x, y) => x + y, 0) / a.length;
   assert(prom(conoc[6]) > prom(conoc[0]) + 0.03, `la precampaña no tracciona conocimiento (${prom(conoc[0]).toFixed(2)} → ${prom(conoc[6]).toFixed(2)})`);
   console.log("Conocimiento medio antes de las PASO: sin precampaña", Math.round(prom(conoc[0]) * 100) + "%, con 6 meses", Math.round(prom(conoc[6]) * 100) + "%");
+}
+// ---------- Gestiones ante el superior: afinidad, peso y costo político ----------
+function assertG(c, msg) { if (!c) throw new Error("Gestiones: " + msg); }
+function localListo(obj, id) {
+  const ctx = nuevo();
+  ctx.iniciarPartida({ nombre: "G", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: obj, provincia: id, ciudad: id, camino: "sumarse", partido: "MNJ", tipoInterna: null, era: "hoy" });
+  const S = ctx.get();
+  S.resultadoGeneral = ctx.resultadosNacionales(S.candidatos.filter(c => c.activo));
+  ctx.iniciarGobiernoLocal();
+  return ctx;
+}
+{
+  // gobernador ante la Nación: con el presidente del mismo signo se consigue más
+  const tasa = { mismo: 0, otro: 0 }, N = 400;
+  for (const lado of ["mismo", "otro"]) {
+    for (let i = 0; i < N; i++) {
+      const ctx = localListo("gobernador", "entrerios"), S = ctx.get();
+      S.presidente.partido = lado === "mismo" ? S.jugador.partido : "LY"; S.presidente.relacion = lado === "mismo" ? 40 : -10;
+      S.agenda = 2;
+      const r = ctx.presentarGestion("atn");
+      assertG(r.ok, "no se pudo pedir un ATN: " + r.msg);
+      const t = ctx.asegurarGest().tram[0];
+      for (let m = 0; m < 4 && t.estado === "tramite"; m++) { t.resp = S.mes; ctx.procesarRelLocal(); }
+      if (t.estado === "cumplido" || t.estado === "condicionado") tasa[lado]++;
+    }
+  }
+  console.log("ATN aprobados (directo o con condiciones): mismo signo", Math.round(tasa.mismo / N * 100) + "%, otro signo", Math.round(tasa.otro / N * 100) + "%");
+  assertG(tasa.mismo > tasa.otro + N * 0.15, "el mismo signo político debería facilitar mucho la gestión");
+  // pero el mismo signo deja favores que después se cobran
+  const ctx = localListo("gobernador", "entrerios"), S = ctx.get();
+  S.presidente.partido = S.jugador.partido; S.presidente.relacion = 60; S.presidente.favores = 0;
+  const t = { uid: 99, tipo: "obraNac", ante: "sup", estado: "tramite", desde: 1, resp: 1, insist: 0, demoras: 0 };
+  ctx.aprobarGestion(t, "");
+  assertG(S.presidente.favores >= 4, "una obra del mismo signo debería dejar una deuda política");
+  assertG(t.estado === "obra" && t.finObra > S.mes, "la obra nacional debería quedar en ejecución");
+  let cobro = false;
+  S.presidente.favores = 8;
+  for (let m = 0; m < 30 && !cobro; m++) { ctx.procesarRelLocal(); cobro = ctx.asegurarGest().cobros.length > 0; }
+  assertG(cobro, "el superior debería pasar la factura con muchos favores debidos");
+  // la obra se inaugura y queda en la trayectoria
+  t.finObra = S.mes; ctx.asegurarGest().tram.push(t); ctx.procesarRelLocal();
+  assertG(t.estado === "terminada" && S.tray.hitos.some(h => h.tipo === "obra"), "la obra no se inauguró o no quedó en la trayectoria");
+  // con peso propio alto, la probabilidad sube
+  S.presidente.partido = "LY"; S.presidente.relacion = 0; S.presidente.favores = 0; S.presidente.castigo = 0;
+  S.ind.imagen = 25; const pBaja = ctx.evaluarGestion("obraNac").p;
+  S.ind.imagen = 80; const pAlta = ctx.evaluarGestion("obraNac").p;
+  assertG(pAlta > pBaja, "más imagen y peso propio deberían ayudar a gestionar");
+  anotar("gestiones gobernador");
+}
+{
+  // intendente: su superior es el gobernador, y la coparticipación depende de esa relación
+  const ctx = localListo("intendente", "parana"), S = ctx.get(), g = ctx.asegurarGest();
+  assertG(g.gobProv && g.gobProv.nombre === "Entre Ríos", "el intendente de Paraná debería depender del gobierno de Entre Ríos");
+  g.gobProv.relacion = 77; assertG(ctx.P_rel() === 77, "la coparticipación municipal debería depender del gobernador");
+  // saltear al gobernador e ir a la Nación le cae mal
+  const antes = g.gobProv.relacion; S.agenda = 2;
+  ctx.presentarGestion("fondosNac");
+  assertG(g.gobProv.relacion < antes, "ir directo a la Nación debería enojar al gobernador");
+  // la emergencia solo se puede pedir con tensión alta
+  S.ind.tension = 20; S.agenda = 2;
+  assertG(!ctx.presentarGestion("emergencia").ok, "la emergencia no debería pedirse con calma social");
+  anotar("gestiones intendente");
+}
+// ---------- Peso legislativo: el tema y el peso definen cuánto hay que negociar ----------
+function assertP(c, msg) { if (!c) throw new Error("Peso: " + msg); }
+{
+  const ctx = nuevo();
+  ctx.iniciarPartida({ nombre: "L", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: "legislador", camaraLeg: "dip", camino: "sumarse", partido: "UR", tipoInterna: null, era: "hoy" });
+  const S = ctx.get();
+  S.bancasLista = { yo: 2 }; ctx.iniciarLegislatura(2);
+  const pl = ctx.asegurarPeso();
+  assertP(pl && pl.peso > 0, "no se inicializó el peso");
+  S.propiosEnComision = [{ id: "conectividad", desde: 1 }, { id: "regalias", desde: 1 }];
+  pl.peso = 70; pl.comisiones = { educacion: "vocal" };
+  const menor = ctx.estadoNeg("tema:conectividad");
+  assertP(menor.listo, `con peso alto un tema menor debería salir sin negociar (${menor.total}/${menor.umbral})`);
+  pl.peso = 15;
+  const fondo = ctx.estadoNeg("tema:regalias");
+  assertP(!fondo.listo && fondo.falta > 40, `con poco peso un tema de fondo debería exigir mucha negociación (faltan ${fondo.falta})`);
+  // negociar suma apoyo
+  pl.rondas = 10; S.leg2.recursos = 5;
+  for (const c of ctx.contrapartesNeg("tema:regalias")) for (let k = 0; k < 3 && !c.hecha; k++) { const n = ctx.negEntry("tema:regalias"); delete n.fallas[c.id]; ctx.negociarApoyo("tema:regalias", c.id, c.ops[0]); if (n.hechas.includes(c.id)) break; }
+  assertP(ctx.estadoNeg("tema:regalias").neg > 0, "negociar no sumó apoyo");
+  // con poco peso no se puede presidir Presupuesto; con mucho, sí se puede pelear
+  pl.peso = 10; pl.rondas = 3;
+  assertP(/necesitás más peso/.test(ctx.pedirComision("presupuesto", "pres").msg), "un recién llegado no debería poder pelear Presupuesto");
+  pl.peso = 75; pl.rondas = 3;
+  const r = ctx.pedirComision("presupuesto", "pres");
+  assertP(!/necesitás más peso/.test(r.msg), "con mucho peso debería poder pelear Presupuesto");
+  // más peso, más agenda
+  pl.peso = 10; const pocas = ctx.rondasMaxLeg(); pl.peso = 85; const muchas = ctx.rondasMaxLeg();
+  assertP(muchas > pocas, "más peso debería dar más rondas de negociación");
+  // promesas: incumplir baja la palabra y el peso
+  pl.peso = 50; pl.palabra = 70;
+  pl.cobros.push({ uid: 999, acreedor: "gob", nombre: "Los gobernadores", bloque: "PROV", mes: S.mes, proyecto: "X", resuelto: false });
+  ctx.resolverCobroLeg(999, "incumplir");
+  assertP(pl.palabra < 70 && pl.peso < 50, "incumplir debería costar palabra y peso");
+  // cuando el Ejecutivo negocia, un peso pesado saca más que un recién llegado
+  const botin = peso => { let tot = 0; for (let i = 0; i < 40; i++) { pl.peso = peso; S.oficialismo = false; S.proyLeg = [{ id: "laboral", origen: "ejecutivo", resuelto: false }]; const a = S.leg2.recursos; ctx.resolverProyecto(0, "negociar"); tot += S.leg2.recursos - a; } return tot; };
+  assertP(botin(80) > botin(10), "el peso debería aumentar lo que se saca en una negociación con el Ejecutivo");
+  // guardar y cargar conserva el estado nuevo; una partida vieja sin él se carga igual
+  const st = ctx.serializarPartida();
+  assertP(ctx.cargarTexto(st).ok && ctx.get().pl && ctx.get().pl.comisiones, "no se conservó el peso al guardar");
+  const vieja = JSON.parse(st); delete vieja.S.pl;
+  assertP(ctx.cargarTexto(JSON.stringify(vieja)).ok && ctx.get().pl, "una partida vieja de legislador no se carga");
+  anotar("peso legislativo");
+}
+{
+  // partida vieja de gobernador sin gestiones
+  const ctx = localListo("gobernador", "entrerios");
+  const st = JSON.parse(ctx.serializarPartida()); delete st.S.gest; delete st.S.presidente.caja; delete st.S.presidente.favores;
+  if (!(ctx.cargarTexto(JSON.stringify(st)).ok && ctx.get().gest && ctx.get().presidente.caja != null)) throw new Error("Gestiones: una partida vieja de gobernador no se carga");
+  anotar("gestiones partida vieja");
 }
 console.log(res);
 console.log("OK: sin errores en", Object.values(res).reduce((a, v) => a + v, 0), "partidas.");
