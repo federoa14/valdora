@@ -247,7 +247,7 @@ function puedePresentarLey() {
   if (ctx.modo === "leg" && S.accionesLeg <= 0) return { ok: false, msg: "Ya usaste la acción de este mes." };
   if (ctx.modo === "leg" && E.tram.filter(l => l.propia).length >= 3) return { ok: false, msg: "Tenés tres proyectos en trámite: las comisiones no te van a dar más lugar." };
   if (ctx.modo === "leg") return { ok: true };
-  if (E.mes >= 1) return { ok: false, msg: "Ya enviaste un proyecto este mes. El Congreso no trata más de uno tuyo por mes." };
+  if (E.mes >= 1) return { ok: false, msg: `Ya enviaste un proyecto este mes. ${ctx.modo === "local" ? (ctx.cuerpo === "leg" ? "La Legislatura" : "El Concejo") : "El Congreso"} no trata más de uno tuyo por mes.` };
   if (E.tram.filter(l => l.propia).length >= 4) return { ok: false, msg: "Tenés cuatro proyectos en trámite. Destrabá alguno antes de mandar otro." };
   return { ok: true };
 }
@@ -441,7 +441,7 @@ function resolverVetoLey(op) {
   if (ctx.bicameral && d.aprobado) { s = votarCuerpoLey("sen", ley, ctx, { dosTercios: "presentes", insistencia: true, extra }); pasos.push(s); }
   if (d.aprobado && s.aprobado) {
     S.ind.legitimidad -= 4; S.ind.imagen -= 3;
-    const r = sancionar(ley, pasos, `Vetaste "${ley.nombre}", pero ${ctx.bicameral ? "el Congreso" : "el cuerpo"} insistió con dos tercios. Derrota política.`);
+    const r = sancionar(ley, pasos, `Vetaste "${ley.nombre}", pero ${ctx.modo === "local" ? (ctx.cuerpo === "leg" ? "la Legislatura" : "el Concejo") : "el Congreso"} insistió con dos tercios. Derrota política.`);
     return r;
   }
   S.ind.imagen -= ley.pop > 3 ? 3 : ley.pop > 0 ? 1 : 0;

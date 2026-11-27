@@ -332,8 +332,11 @@ function finTrimestreLocal() {
   if (crisisNac) { S.inflNacional += 3; ev.push({ titulo: "Crisis en la economía nacional", texto: "Una devaluación nacional golpea la recaudación y los precios.", tipo: "malo" }); }
   // caja: coparticipación + recursos propios + transferencias - gastos
   const gasto = Object.values(S.presLocal).reduce((a, v) => a + v, 0) / 6; // promedio de % de cambio
-  const copa = 20 - S.inflNacional * 1.2 + (P_rel() > 30 ? 4 : P_rel() < -30 ? -4 : 0);
-  const propios = 6 + S.tasa * 2;
+  // cada territorio tiene su dependencia de la Nación, su holgura fiscal y sus regalías (ver territorios.js)
+  const ff = typeof factoresFiscales === "function" ? factoresFiscales() : { dep: 0.77, fisc: 0, reg: 0, tension: 0, erosion: 0.06 };
+  const ingresos = 26 + ff.fisc;
+  const copa = ingresos * ff.dep * (1 - ff.erosion * S.inflNacional) + (P_rel() > 30 ? 4 : P_rel() < -30 ? -4 : 0) * ff.dep / 0.77;
+  const propios = ingresos * (1 - ff.dep) * (1 - 0.015 * S.inflNacional) + S.tasa * 2;
   const gastos = 26 + gasto * 0.3 + I.deuda * 0.05;
   I.caja = R.clamp(I.caja + (copa + propios - gastos) * f, -50, 200);
   // indicadores
@@ -344,7 +347,7 @@ function finTrimestreLocal() {
   I.desempleo = R.clamp(I.desempleo + ((S.inflNacional - 3) * 0.1 - (pl.obras || 0) / 40) * f + ruido(0.2), 2, 30);
   const impagos = I.caja < 0;
   if (impagos) { S.sueldosImpagos += f; I.tension += 8 * f; ev.push({ titulo: "Sueldos impagos", texto: "La caja está vacía: los estatales no cobran a tiempo.", tipo: "malo" }); } else S.sueldosImpagos = Math.max(0, S.sueldosImpagos - f);
-  const objT = 20 + (S.inflNacional - 2) * 3 + (I.pobreza - 30) * 0.6 + (I.desempleo - 7) * 1.5 - (pl.social || 0) / 6 - ((pl.estatales || 0) + (pl.transporte || 0)) / 10 + S.sueldosImpagos * 6;
+  const objT = 20 + (S.inflNacional - 2) * 3 + (I.pobreza - 30) * 0.6 + (I.desempleo - 7) * 1.5 - (pl.social || 0) / 6 - ((pl.estatales || 0) + (pl.transporte || 0)) / 10 + S.sueldosImpagos * 6 + ff.tension;
   I.tension = R.clamp(suav(I.tension, objT, 0.6), 0, 100);
   const objI = 55 + (I.servicios - 50) * 0.4 - (I.inseguridad - 55) * 0.3 - Math.max(0, I.tension - 45) * 0.4 + (yo.carisma - 5) * 1.5 + (yo.gestion - 5) * 1.5 - S.trimestre * 0.5 - S.tasa * 1.5 - S.sueldosImpagos * 8;
   I.imagen = R.clamp(suav(I.imagen, objI, 0.65), 3, 95);
@@ -372,15 +375,28 @@ function finTrimestreLocal() {
     if (v.aprobado) { S.perdio = true; S.motivoDerrota = gob ? "La Legislatura te destituyó por juicio político con dos tercios." : "El Concejo Deliberante te destituyó con dos tercios."; ev.push({ titulo: "Destitución", texto: S.motivoDerrota, tipo: "malo", pasos: [v] }); return ev; }
   }
   // elección de medio término (trimestre 8)
-  if (cierre && S.trimestre === 8) {
+  // (solo donde la Legislatura o el Concejo se renuevan por mitades o por tercios)
+  if (cierre && S.trimestre === 8 && !(S.terr && S.terr.ren === "total" && (!S.legSen || S.terr.renSen === "total"))) {
     const arrastre = S.flagsLocal.pegado ? (R.rand() < 0.5 ? 8 : -8) : 0;
     const swing = Math.round((I.imagen - 45 + arrastre) / 100 * S.legTotal * 0.3);
     const otros = Object.keys(S.leg).filter(k => k !== yo.partido).sort((a, b) => S.leg[b] - S.leg[a]);
-    for (let i = 0; i < Math.abs(swing); i++) {
+    const renuevaDip = !(S.terr && S.terr.ren === "total");
+    for (let i = 0; renuevaDip && otros.length && i < Math.abs(swing); i++) {
       if (swing > 0 && S.leg[otros[0]] > 0) { S.leg[otros[0]]--; S.leg[yo.partido] = (S.leg[yo.partido] || 0) + 1; }
       else if (swing < 0 && (S.leg[yo.partido] || 0) > 0) { S.leg[yo.partido]--; S.leg[otros[0]]++; }
     }
-    ev.push({ titulo: "Elecciones de medio término", texto: `Tu bloque ${swing >= 0 ? "gana" : "pierde"} ${Math.abs(swing)} bancas. Ahora tenés ${S.leg[yo.partido] || 0} de ${S.legTotal}.${S.flagsLocal.pegado ? " La boleta del presidente influyó." : ""}`, tipo: swing >= 0 ? "bueno" : "malo" });
+    let txtSen = "";
+    if (S.legSen && S.terr.renSen !== "total") {
+      const sw = Math.round((I.imagen - 45 + arrastre) / 100 * S.legSenTotal * (S.terr.renSen === "tercios" ? 0.2 : 0.3));
+      const os = Object.keys(S.legSen).filter(k => k !== yo.partido).sort((a, b) => S.legSen[b] - S.legSen[a]);
+      for (let i = 0; i < Math.abs(sw) && os.length; i++) {
+        if (sw > 0 && S.legSen[os[0]] > 0) { S.legSen[os[0]]--; S.legSen[yo.partido] = (S.legSen[yo.partido] || 0) + 1; }
+        else if (sw < 0 && (S.legSen[yo.partido] || 0) > 0) { S.legSen[yo.partido]--; S.legSen[os[0]]++; }
+      }
+      txtSen = ` En el Senado provincial quedás con ${S.legSen[yo.partido] || 0} de ${S.legSenTotal}.`;
+    }
+    const swTxt = !renuevaDip ? "Diputados no se renueva" : `Tu bloque ${swing >= 0 ? "gana" : "pierde"} ${Math.abs(swing)} bancas`;
+    ev.push({ titulo: "Elecciones de medio término", texto: `${swTxt}. Ahora tenés ${S.leg[yo.partido] || 0} de ${S.legTotal}.${txtSen}${S.flagsLocal.pegado ? " La boleta del presidente influyó." : ""}`, tipo: swing >= 0 ? "bueno" : "malo" });
   }
   S.hist.push({ t: S.mes, ...I });
   S.mes++;

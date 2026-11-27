@@ -218,3 +218,36 @@ table.ranuras td.acc button { padding: 5px 10px; font-size: .82rem; margin-left:
 .graf .leyenda { font-size: .74rem; gap: 4px 10px; }
 .eco-grid select, .eco-grid input:not([type=range]):not([type=checkbox]) { max-width: 100%; }
 .eco-grid select { width: 100%; }
+
+/* Selección de territorio (provincias y municipios) */
+.terr-sel { display: grid; grid-template-columns: minmax(180px, 280px) 1fr; gap: 16px; align-items: start; }
+.terr-izq .terr-mapa { max-height: 520px; }
+.terr-ref { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center; margin-top: 6px; }
+.terr-punto { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.terr-dif { display: inline-block; padding: 3px 10px; border-radius: 999px; color: #08111f; font-weight: 700; font-size: .8rem; white-space: nowrap; }
+.terr-barra { display: grid; grid-template-columns: 120px 1fr 28px; gap: 8px; align-items: center; font-size: .82rem; margin: 6px 0; }
+.terr-barra div { height: 8px; background: var(--chip); border-radius: 4px; overflow: hidden; }
+.terr-barra i { display: block; height: 100%; border-radius: 4px; }
+.terr-barra b { text-align: right; font-variant-numeric: tabular-nums; }
+.terr-sub { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 12px; }
+.terr-sub .terr-barra { grid-template-columns: 1fr; gap: 2px; }
+.terr-sub .terr-barra b { display: none; }
+.terr-motivos, .terr-rasgos { margin: 8px 0; padding-left: 18px; font-size: .86rem; }
+.terr-motivos { list-style: none; padding-left: 0; }
+.terr-motivos li { margin: 2px 0; }
+.terr-motivos li.up-good b { color: var(--good); } .terr-motivos li.up-bad b { color: var(--bad); }
+.terr-motivos li { color: var(--ink); }
+.terr-hemis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.terr-leyenda { white-space: nowrap; margin-right: 8px; }
+.terr-tabla td:first-child { color: var(--muted); white-space: nowrap; padding-right: 10px; }
+.terr-cifras { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin: 6px 0; }
+.terr-cifras div { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; }
+.terr-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.terr-op span { display: block; }
+.terr-filtros button { font-size: .82rem; }
+@media (max-width: 720px) {
+  .terr-sel { grid-template-columns: 1fr; }
+  .terr-izq .terr-mapa { max-height: 300px; }
+  .terr-barra { grid-template-columns: 96px 1fr 24px; }
+}
+.terr-hemis .hemiciclo { max-width: 300px; }

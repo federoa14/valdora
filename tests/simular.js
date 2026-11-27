@@ -75,5 +75,24 @@ for (let i = 0; i < 16; i++) {
     anotar(obj + " " + (S.perdio ? "perdió" : "completó"));
   }
 }
+// cada provincia y cada municipio: armar la Legislatura o el Concejo y gobernar un año con leyes
+const PROVS = ["caba", "buenosaires", "catamarca", "cordoba", "corrientes", "chaco", "chubut", "entrerios", "formosa", "jujuy", "lapampa", "larioja", "mendoza", "misiones", "neuquen", "rionegro", "salta", "sanjuan", "sanluis", "santacruz", "santafe", "santiago", "tucuman", "tdf"];
+const CIUDS = ["lamatanza", "laplata", "mardelplata", "bahiablanca", "quilmes", "cordoba", "mendoza", "tucuman"];
+for (const [obj, lista] of [["gobernador", PROVS], ["intendente", CIUDS]]) for (const id of lista) {
+  const ctx = nuevo();
+  ctx.iniciarPartida({ nombre: "X", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: obj, provincia: id, ciudad: id, camino: "sumarse", partido: "UR", tipoInterna: null, era: id === "santafe" ? "2001" : "hoy" });
+  const S = ctx.get();
+  S.resultadoGeneral = ctx.resultadosNacionales(S.candidatos.filter(c => c.activo));
+  ctx.iniciarGobiernoLocal();
+  const suma = o => Object.values(o).reduce((a, v) => a + v, 0);
+  if (suma(S.leg) !== S.legTotal) throw new Error(`${id}: la Legislatura suma ${suma(S.leg)} y debería sumar ${S.legTotal}`);
+  if (S.legSen && suma(S.legSen) !== S.legSenTotal) throw new Error(`${id}: el Senado suma ${suma(S.legSen)} y debería sumar ${S.legSenTotal}`);
+  for (let g = 0; !S.perdio && !S.terminoMandato && g < 12; g++) {
+    S.expedientesLocal.forEach((e, j) => { if (!e.resuelto) ctx.resolverExpLocal(j, 0); });
+    leyDelMes(ctx);
+    ctx.finTrimestreLocal();
+  }
+  anotar("territorio " + obj);
+}
 console.log(res);
 console.log("OK: sin errores en", Object.values(res).reduce((a, v) => a + v, 0), "partidas.");
