@@ -72,5 +72,13 @@ Documento de diseño: https://claude.ai/artifact/2W7cuhDDo71UUFCJoaj9xx
 - [x] Prueba automática recorre las 24 provincias y los 8 municipios
 - Pendiente: sumar más municipios exige cartografía de barrios
 
+## Etapa 10: v0.11 — Trayectoria política y precampaña
+- [x] `js/trayectoria.js`: hitos de la carrera (internas, precampaña, debates, elecciones, cargos y su calificación, mandatos interrumpidos, leyes, obras, escándalos, causas, medio término, cambios de partido) guardados con la partida y en un legajo persistente (`valdora_carreras`)
+- [x] Reconocimiento por territorio, prestigio y efecto por grupo social en la intención de voto; estructura (plata, militantes, fiscales) y puntos de atributo por experiencia
+- [x] Seguir la carrera con el mismo personaje en otro cargo; currículum de los rivales de la IA; encuesta de conocimiento e imagen
+- [x] `js/precampana.js`: precampaña de 3 o 6 meses antes de las PASO o la interna, con rendimiento decreciente, rivales que todavía no largaron, desgaste y fatiga
+- [x] Pantalla de trayectoria, tarjeta de conocimiento en la campaña, carreras en la creación del personaje y en la pantalla final
+- [x] Prueba automática: carrera de dos partidas, efecto de escándalos por grupo, cambio de partido, guardados viejos y precampaña
+
 ## Próximas ideas
 - [x] Escala legislador / jefe de bloque (v0.5)

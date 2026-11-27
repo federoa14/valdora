@@ -212,14 +212,13 @@ function debateIndicadores() {
 // Trayectoria del personaje (si la partida la tiene): 0 = sin experiencia · 1 = mucha
 function debateExperiencia() {
   const yo = S.jugador;
-  const t = yo.trayectoria || S.trayectoria || yo.cargos || null;
   let n = 0;
-  if (Array.isArray(t)) n = t.length;
-  else if (t && typeof t === "object") n = Array.isArray(t.cargos) ? t.cargos.length : Object.keys(t).length;
-  else if (typeof t === "number") n = t;
+  if (S.tray && Array.isArray(S.tray.hitos)) n = S.tray.hitos.filter(h => h.tipo === "cargo" || h.tipo === "inconcluso").length; // trayectoria.js
+  else if (Array.isArray(yo.cargos)) n = yo.cargos.length;
   if (!n && yo.partido !== "NUEVO") n = 1; // los partidos tradicionales tienen al menos un cargo partidario
   return R.clamp(n / 3, 0, 1);
 }
+function debateHitos(tipo) { return (S.tray && Array.isArray(S.tray.hitos)) ? S.tray.hitos.filter(h => h.tipo === tipo) : []; }
 function debateCand(id) { return S.candidatos.find(c => c.id === id); }
 function debateTexto(s) {
   const ind = debateIndicadores();
@@ -261,8 +260,8 @@ function elegirPreguntasDebate(n) {
 }
 
 function crearDebate(tipo = "general") {
-  const part = (tipo === "balotaje" ? S.candidatos.filter(c => c.activo) : candidatosEnCarrera()).map(c => c.id);
-  const preguntas = elegirPreguntasDebate(tipo === "balotaje" ? 3 : 4);
+  const part = (tipo === "balotaje" ? S.candidatos.filter(c => c.activo) : tipo === "interna" ? [S.jugador, rivalInterno()] : candidatosEnCarrera()).map(c => c.id);
+  const preguntas = elegirPreguntasDebate(tipo === "general" ? 4 : 3);
   preguntas.push(DEBATE_CIERRE.id);
   S.debate = {
     tipo, estado: "pendiente", fase: "pregunta", ronda: 0, preguntas, part,
@@ -366,6 +365,9 @@ function frasesAtaque(c) {
   if (yo.ideo < 35) f.push(`"Sus recetas ya fundieron a Valdora tres veces."`);
   if (yo.ideo > 65) f.push(`"Representa a los bancos y a los que fugan."`);
   if (yo.partido !== "NUEVO" && PARTIDOS[yo.partido]) f.push(`"Su partido gobernó y nos dejó así. ¿De qué cambio habla?"`);
+  if (debateHitos("causa").length || debateHitos("escandalo").length) f.push(`"Antes de hablar de transparencia, explíquenos su causa en la Justicia."`);
+  if (debateHitos("cambio").length) f.push(`"Ya estuvo en tres partidos. ¿En cuál va a estar el año que viene?"`);
+  if (debateHitos("cargo").some(h => h.nota === "mala" || (h.valor || 0) < 0)) f.push(`"Ya gobernó y le fue mal. La gente se acuerda."`);
   if (yo.imagen < -3) f.push(`"La gente ya conoce su historia y por eso no le cree."`);
   f.push(`"Habla mucho, pero no presentó un solo número."`, `"Cambia de opinión según el canal en el que esté."`, `"Prometer es gratis: lo difícil es explicar con qué plata."`);
   const libres = f.filter(x => !usadas.includes(x));
@@ -520,12 +522,17 @@ function cerrarDebate() {
     return { medio: m.nombre, txt, ganador };
   });
   const miPos = orden.indexOf(yo.id) + 1;
-  const titulo = D.tipo === "balotaje" ? "Debate del balotaje" : `Debate de candidatos a ${debateNombreCargo()}`;
+  const titulo = D.tipo === "balotaje" ? "Debate del balotaje" : D.tipo === "interna" ? `Debate de la interna del ${PARTIDOS[yo.partido].corto}` : `Debate de candidatos a ${debateNombreCargo()}`;
   const texto = `${titulo}: según la encuesta flash ganó ${debateCand(orden[0]).nombre} (${fmt(flash[orden[0]], 0)}%). Vos quedaste ${miPos}º de ${n}.`;
   log(texto, miPos === 1 ? "bueno" : miPos === n ? "malo" : "info");
   D.estado = "cerrado"; D.fase = "fin";
   D.resultado = { orden, flash, titulares, miPos, efectoYo: D.efectos[yo.id] || {}, imagenYo: (miPos === 1 ? 3 : miPos === 2 && n > 2 ? 1 : miPos === n ? -2 : 0) + D.img[yo.id] };
   S.debatesJugados = (S.debatesJugados || 0) + 1;
+  // queda en la trayectoria del personaje (trayectoria.js)
+  if (typeof registrarHito === "function") {
+    if (miPos === 1) registrarHito({ tipo: "debate", txt: D.tipo === "balotaje" ? "Ganó el debate del balotaje" : D.tipo === "interna" ? "Ganó el debate de la interna" : "Ganó el debate según la encuesta flash", peso: 1.5, valor: 1.5 });
+    else if (miPos === n) registrarHito({ tipo: "debate", txt: D.resultado && D.momentos.some(m => m.txt.startsWith("Faltaste")) ? "Faltó al debate: silla vacía" : "Perdió el debate: quedó último", peso: 1, valor: -1.5 });
+  }
   if (S.fase === "campana") S.ultimaEncuesta = encuesta();
   return { titulo, texto, tipo: miPos === 1 ? "bueno" : miPos === n ? "malo" : "info" };
 }
@@ -558,24 +565,38 @@ function resolverDebateAuto() {
 }
 
 // ---------- Enganche con la campaña ----------
-// El debate de la semana 9 (y el del balotaje) se juegan como escena interactiva
-debate = function () {
-  crearDebate("general");
-  const t = `Esta noche se transmite por ${S.debate.canal} el debate de candidatos a ${debateNombreCargo()}${debateTerritorio() !== "el país" ? ` de ${debateTerritorio()}` : ""}. Modera ${S.debate.moderador}. ${S.debate.part.length} candidatos, ${S.debate.preguntas.length - 1} preguntas sorteadas y un minuto final.`;
+// El motor ya no resuelve el debate a mitad de campaña: los debates se programan acá.
+//  - interna: el mes previo a las PASO, mano a mano con el rival interno (si la interna es por PASO)
+//  - general: el último mes, el previo a la elección general
+//  - balotaje: el mes previo a la segunda vuelta
+debate = function () { return null; };
+
+function anunciarDebate(tipo) {
+  crearDebate(tipo);
+  const D = S.debate, cs = D.part.map(debateCand);
+  const de = debateTerritorio() !== "el país" ? ` de ${debateTerritorio()}` : "";
+  if (tipo === "interna") {
+    log("Se viene el debate de la interna.", "aviso");
+    return { titulo: "Debate de la interna", texto: `Falta un mes para las PASO del ${PARTIDOS[S.jugador.partido].corto}. ${cs[0].nombre} y ${cs[1].nombre} se ven las caras por ${D.canal}. Modera ${D.moderador}.`, tipo: "aviso", debate: true };
+  }
+  if (tipo === "balotaje") {
+    log("Se viene el debate del balotaje.", "aviso");
+    return { titulo: "Debate del balotaje", texto: `Mano a mano: ${cs[0].nombre} y ${cs[1].nombre} se ven las caras por ${D.canal}, un mes antes de la segunda vuelta. Es el último gran momento de la campaña.`, tipo: "aviso", debate: true };
+  }
   log("Se viene el debate televisado.", "aviso");
-  return { titulo: "Debate televisado", texto: t, tipo: "aviso", debate: true };
-};
+  return { titulo: "Debate televisado", texto: `Falta un mes para la elección. Esta noche se transmite por ${D.canal} el debate de candidatos a ${debateNombreCargo()}${de}. Modera ${D.moderador}. ${D.part.length} candidatos, ${D.preguntas.length - 1} preguntas sorteadas y un minuto final.`, tipo: "aviso", debate: true };
+}
 
 const _terminarSemanaDebate = terminarSemana;
 terminarSemana = function () {
   // si el debate quedó sin jugar (partida sin interfaz o recargada), se juega solo antes de seguir
   if (debatePendiente()) resolverDebateAuto();
-  const ev = _terminarSemanaDebate.apply(this, arguments);
-  if (S.fase === "campana" && S.balotaje && !S.perdio && !S.debateBalotaje) {
-    S.debateBalotaje = true;
-    crearDebate("balotaje");
-    const [a, b] = S.debate.part.map(debateCand);
-    ev.push({ titulo: "Debate del balotaje", texto: `Mano a mano: ${a.nombre} y ${b.nombre} se ven las caras por ${S.debate.canal}. Es el último gran momento de la campaña.`, tipo: "aviso", debate: true });
-  }
+  const ev = (_terminarSemanaDebate.apply(this, arguments) || []).filter(Boolean);
+  if (S.fase !== "campana" || S.perdio) return ev;
+  S.debatesHechos = S.debatesHechos || {};
+  const H = S.debatesHechos;
+  if (!H.interna && S.tipoInterna === "PASO" && !S.internaResuelta && rivalInterno() && S.semana === SEMANA_INTERNA - 1) { H.interna = true; ev.push(anunciarDebate("interna")); }
+  else if (!H.general && !S.balotaje && S.semana === SEMANAS_CAMPANA - 1) { H.general = true; ev.push(anunciarDebate("general")); }
+  else if (!H.balotaje && S.balotaje) { H.balotaje = true; ev.push(anunciarDebate("balotaje")); }
   return ev;
 };

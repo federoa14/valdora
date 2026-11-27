@@ -67,7 +67,7 @@ function abrirDebate(alFinal) {
   const D = S.debate;
   if (!D || D.estado !== "pendiente") { alFinal && alFinal(); return; }
   const cands = D.part.map(debateCand);
-  modal(`${debCabecera()}<h2>${D.tipo === "balotaje" ? "Debate del balotaje" : "Debate televisado"}</h2>
+  modal(`${debCabecera()}<h2>${D.tipo === "balotaje" ? "Debate del balotaje" : D.tipo === "interna" ? "Debate de la interna" : "Debate televisado"}</h2>
     <p>Las luces del estudio se encienden. ${cands.length} atriles: ${cands.map(c => `<b>${esc(c.nombre)}</b> (${esc(PARTIDOS[c.partido].corto)})`).join(", ")}.</p>
     <p class="small muted">El moderador va a hacer ${D.preguntas.length - 1} preguntas sorteadas y al final tenés un minuto para hablarle a cámara. Cada respuesta pone a prueba un atributo y le habla a distintos grupos sociales. Los rivales también juegan: pueden lucirse, equivocarse o atacarte. Si te atacan, tenés derecho a réplica.</p>
     <div class="row" style="justify-content:space-between;margin-top:10px"><button class="sec" id="dFaltar" title="Silla vacía: los rivales te van a destrozar">Faltar al debate</button><button id="dEntrar">Entrar al estudio ▸</button></div>`, "debate");
@@ -119,7 +119,7 @@ function pantallaFinDebate(alFinal) {
     <h3 style="margin-top:12px">Tu repercusión</h3>
     <p class="small">Imagen ${R0.imagenYo >= 0 ? "+" : ""}${fmt(R0.imagenYo, 1)}. Más gente te conoce en ${debateTerritorio() === "el país" ? "todo el país" : esc(debateTerritorio())}. Así te ven los grupos sociales después del debate:</p>${debGrupos(R0.efectoYo)}
     <h3 style="margin-top:12px">Momentos de la noche</h3><div class="log">${D.momentos.slice(-8).map(m => `<div class="${m.tipo}"><span class="t">R${m.ronda}</span>${esc(m.txt)}</div>`).join("")}</div>
-    <div class="row" style="justify-content:flex-end;margin-top:10px"><button id="dVolver">Volver a la campaña ▸</button></div>`, tipo);
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button id="dVolver">${D.tipo === "general" ? "Último mes de campaña ▸" : "Volver a la campaña ▸"}</button></div>`, tipo);
   $("#dVolver").onclick = () => { cerrarModal(); if (typeof autoguardar === "function") autoguardar(); alFinal && alFinal(); };
 }
 
