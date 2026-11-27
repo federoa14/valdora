@@ -87,10 +87,13 @@ function htmlSelectorCamara(c) {
   ];
   return `<div class="card stack"><h2>Cámara</h2><div class="opciones" style="grid-template-columns:1fr 1fr">${ops.map(([id, n, d]) => `<div class="opcion ${c.camaraLeg === id ? "sel" : ""}" data-camleg="${id}"><b>${n}</b><span class="small muted">${d}</span></div>`).join("")}</div></div>`;
 }
+// los mandatos completos de una carrera dan puntos extra de atributos
+function puntosAtrib(c) { return PUNTOS_ATRIB + (c && c.legajoId && typeof puntosExtraLegajo === "function" ? puntosExtraLegajo(legajoPorId(c.legajoId)) : 0); }
 function renderCrear() {
-  UI.cfg = UI.cfg || { nombre: "", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: "presidente", camino: "sumarse", partido: "MNJ", nombrePartido: "", tipoInterna: null, era: "hoy" };
+  UI.cfg = UI.cfg || { nombre: "", ideo: 45, carisma: 6, oratoria: 6, gestion: 6, negociacion: 6, objetivo: "presidente", camino: "sumarse", partido: "MNJ", nombrePartido: "", tipoInterna: null, era: "hoy", precampana: 6, legajoId: null };
   const c = normalizarTerritorio(UI.cfg);
-  const usados = c.carisma + c.oratoria + c.gestion + c.negociacion;
+  if (c.precampana == null) c.precampana = 6;
+  const usados = c.carisma + c.oratoria + c.gestion + c.negociacion, maxAtrib = puntosAtrib(c);
   const ideoTxt = c.ideo < 20 ? "Izquierda" : c.ideo < 40 ? "Centroizquierda" : c.ideo < 60 ? "Centro" : c.ideo < 80 ? "Centroderecha" : "Derecha liberal";
   const atr = (k, n, d) => `<div class="attr"><span title="${d}">${n}</span><input type="range" min="1" max="10" value="${c[k]}" data-attr="${k}"><b>${c[k]}</b></div>`;
   const objetivos = [
@@ -102,6 +105,7 @@ function renderCrear() {
   const partidos = ["MNJ", "UR", "FC", "LY", "FT"];
   app.innerHTML = `
     <div class="crear stack">
+      ${typeof htmlCarreras === "function" ? htmlCarreras(c) : ""}
       <div class="card stack">
         <h2>1. Tu personaje</h2>
         <div class="grid">
@@ -110,7 +114,7 @@ function renderCrear() {
             <div class="campo"><label>Ideología: ${ideoTxt} (${c.ideo})</label><input type="range" id="iIdeo" min="0" max="100" value="${c.ideo}"><div class="row small muted" style="justify-content:space-between"><span>Izquierda</span><span>Derecha</span></div></div>
           </div>
           <div class="stack">
-            <label><b>Atributos</b> <span class="small ${usados > PUNTOS_ATRIB ? "up-bad" : "muted"}">${usados} de ${PUNTOS_ATRIB} puntos</span></label>
+            <label><b>Atributos</b> <span class="small ${usados > maxAtrib ? "up-bad" : "muted"}">${usados} de ${maxAtrib} puntos${maxAtrib > PUNTOS_ATRIB ? ` (${maxAtrib - PUNTOS_ATRIB} por experiencia)` : ""}</span></label>
             ${atr("carisma", "Carisma", "Recorridas, actos, militancia")}
             ${atr("oratoria", "Oratoria", "Entrevistas y debates")}
             ${atr("gestion", "Gestión", "Imagen y legitimidad al gobernar")}
@@ -150,9 +154,16 @@ function renderCrear() {
               <option value="dedo" ${c.tipoInterna === "dedo" ? "selected" : ""}>El dedo del líder</option>
             </select></div>`}
       </div>
+      <div class="card stack">
+        <h2>5. ¿Cuándo largás?</h2>
+        <p class="small muted">La campaña general dura seis meses y la interna se define al final del segundo. Con precampaña arrancás antes de las PASO o de la interna para instalarte: más tiempo para juntar avales, militantes y conocimiento, mientras los rivales todavía no largaron. Rinde menos que la campaña, repetir el mismo lugar rinde cada vez menos y arrancar muy temprano desgasta.</p>
+        <div class="opciones" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
+          ${[[0, "Con la campaña", "Sin precampaña: seis meses en total."], [3, "Tres meses antes", "Precampaña corta, casi sin desgaste."], [6, "Seis meses antes", "Precampaña larga: más votos para traccionar, más desgaste."]].map(([m, n, d]) => `<div class="opcion ${c.precampana === m ? "sel" : ""}" data-pre="${m}"><b>${n}</b><span class="small muted">${d}</span></div>`).join("")}
+        </div>
+      </div>
       <div class="row" style="justify-content:space-between">
         <button class="sec" id="bVolver">Volver</button>
-        <button id="bEmpezar" ${usados > PUNTOS_ATRIB ? "disabled" : ""}>Empezar la campaña</button>
+        <button id="bEmpezar" ${usados > maxAtrib ? "disabled" : ""}>${c.precampana ? "Largar la precampaña" : "Empezar la campaña"}</button>
       </div>
     </div>`;
   $("#iNombre").oninput = e => c.nombre = e.target.value;
@@ -163,6 +174,8 @@ function renderCrear() {
   if (c.objetivo === "gobernador" || c.objetivo === "intendente") bindSelectorTerritorio(c, renderCrear);
   document.querySelectorAll("[data-camleg]").forEach(el => el.onclick = () => { c.camaraLeg = el.dataset.camleg; renderCrear(); });
   document.querySelectorAll("[data-camino]").forEach(el => el.onclick = () => { c.camino = el.dataset.camino; renderCrear(); });
+  document.querySelectorAll("[data-pre]").forEach(el => el.onclick = () => { c.precampana = +el.dataset.pre; renderCrear(); });
+  if (typeof bindCarreras === "function") bindCarreras(c, renderCrear);
   document.querySelectorAll("[data-partido]").forEach(el => el.onclick = () => { c.partido = el.dataset.partido; c.ideo = Math.round((c.ideo + PARTIDOS[c.partido].ideo) / 2); renderCrear(); });
   const ip = $("#iPartido"); if (ip) ip.oninput = e => c.nombrePartido = e.target.value;
   const ii = $("#iInterna"); if (ii) ii.onchange = e => c.tipoInterna = e.target.value || null;
@@ -660,6 +673,8 @@ function ayuda() {
   modal(`<h2>Cómo se juega</h2>
     <p><b>Campaña.</b> La campaña dura seis meses y cada mes tenés 6 acciones. Elegí una provincia en el mapa para recorridas y actos; los spots, redes y entrevistas son nacionales. La provincia de Buenos Aires tiene el 38% del padrón y la Ciudad de Buenos Aires, el 7%.</p>
     <p><b>Interna.</b> Si fundás partido, juntá avales antes de fin del segundo mes. Si te sumás a uno, ganá la interna: PASO (fin del mes 2), cerrada (comités) o el dedo del líder (lealtad).</p>
+    <p><b>Precampaña.</b> Podés largar tres o seis meses antes de las PASO o de la interna. Rinde menos que la campaña y repetir el mismo lugar rinde cada vez menos, pero los rivales todavía no largaron y llegás a la interna más conocido y con más militancia. Arrancar muy temprano desgasta.</p>
+    <p><b>Trayectoria.</b> Todo lo que hacés queda en tu legajo: internas, elecciones ganadas y perdidas, cargos, leyes, obras, escándalos y cambios de partido. Al terminar una partida podés seguir la carrera con el mismo personaje en otro cargo: cuanto más conocido y mejor tu trayectoria, más te votan. Los escándalos también te hacen conocido, pero te restan votos, sobre todo en la clase media.</p>
     <p><b>Plata y riesgo.</b> Los aportes dan fondos pero suman riesgo de escándalo. Los pactos con sectores te comprometen después.</p>
     <p><b>Elección.</b> Ganás en primera vuelta con 45%, o con 40% y 10 puntos de ventaja. Si no, balotaje.</p>
     <p><b>Gobernador e intendente.</b> La campaña es por departamentos o barrios y gana el más votado, sin balotaje. Al gobernar no controlás la moneda: dependés de la coparticipación, de la Nación (ATN, fuerzas federales) y de tu Legislatura o Concejo. Si la caja queda en rojo unos nueve meses, te intervienen.</p>

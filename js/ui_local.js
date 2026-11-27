@@ -39,12 +39,6 @@ renderJuego = function () {
   return _renderJuegoEsc();
 };
 
-function puntajeLocal() {
-  const I = S.ind, H = S.hist[0];
-  let p = 100 + (I.imagen - H.imagen) + (I.servicios - H.servicios) - (I.pobreza - H.pobreza) * 2 - (I.inseguridad - H.inseguridad) - (I.deuda - H.deuda) * 0.5 + Math.min(I.caja, 100) * 0.2 - Math.max(0, I.tension - 50);
-  return Math.round(p);
-}
-
 const _renderFinEsc = renderFin;
 renderFin = function (completo) {
   if (!completo || !S || S.fase !== "gobiernoLocal") return _renderFinEsc(completo);
