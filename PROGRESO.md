@@ -88,5 +88,14 @@ Documento de diseño: https://claude.ai/artifact/2W7cuhDDo71UUFCJoaj9xx
 - [x] Prueba automática suma las 10 ciudades, el senador y el tamaño de cada cámara
 - Pendiente: diputado o senador provincial (Legislatura de Paraná) como cargo jugable; cartografía real de los barrios entrerrianos
 
+## Etapa 12: v0.13 — Gestionar ante el superior y peso legislativo
+- [x] `js/relaciones.js`: el intendente gestiona ante la provincia (o salteando al gobernador, ante la Nación) y el gobernador ante la Nación: obras, fondos, convenios, programas, deuda y adelantos como expedientes que se aprueban, se condicionan, se cajonean o se niegan
+- [x] La respuesta depende de la afinidad política, el peso propio (territorio, imagen, bancas, trayectoria), la relación, la caja del superior, la tensión social y el año electoral; el mismo signo facilita pero deja favores que después se cobran
+- [x] Condiciones (alinearse, cofinanciar, adherir, cargos, ir pegado a la boleta, votos en el Congreso), facturas, represalias y arrastre de un jefe impopular en las encuestas; la coparticipación municipal depende del gobernador
+- [x] Legislador: peso político con cinco rangos que definen rondas de negociación, acciones por mes, comisiones y presidencias; vicepresidencia de la Cámara con peso 80
+- [x] Mesa de negociación por proyecto: cada tema tiene magnitud (de menor a de fondo) y el apoyo necesario se cubre con bancas, peso y comisión, o negociando con bloques, gobernadores, la comisión, la Casa Rosada y los sectores (favores, promesas de voto o concesiones)
+- [x] Promesas que se cobran y palabra del legislador; lo que se saca del Ejecutivo depende del peso y del tema; la jefatura del bloque es más estable con más peso
+- [x] Hitos en la trayectoria (obras inauguradas, presidencias de comisión, figura del Congreso) y pruebas automáticas nuevas
+
 ## Próximas ideas
 - [x] Escala legislador / jefe de bloque (v0.5)

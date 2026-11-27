@@ -343,7 +343,7 @@ const TEMAS_PROPIOS = [
 
 function accionLeg(tipo, arg) {
   const L = S.leg2, yo = S.jugador;
-  if (S.accionesLeg <= 0) return { msg: "Ya usaste la acción de este mes.", tipo: "aviso" };
+  if (S.accionesLeg <= 0) return { msg: "Ya usaste las acciones de este mes.", tipo: "aviso" };
   S.accionesLeg--;
   let msg = "", pasos = [], t = "info";
   switch (tipo) {
@@ -422,7 +422,7 @@ function finTrimestreLeg() {
   // proyectos propios en comisión: pueden conseguir dictamen
   for (const pc of S.propiosEnComision.slice()) {
     const T = TEMAS_PROPIOS.find(x => x.id === pc.id);
-    const p = 0.02 + L.influencia / 1200 + (S.cam[yo.partido] || 0) / 1500 + (S.comisionPres ? 0.1 : 0) + (S.oficialismo ? 0.05 : 0) + (S.trimestre - pc.desde) * 0.03;
+    const p = 0.02 + L.influencia / 1200 + (S.cam[yo.partido] || 0) / 1500 + (S.comisionPres ? 0.1 : 0) + (S.oficialismo ? 0.05 : 0) + (S.trimestre - pc.desde) * 0.03 + (typeof ajusteDictamenTema === "function" ? ajusteDictamenTema(pc) : 0);
     if (R.rand() < 1 - Math.pow(1 - Math.min(0.95, p), f)) {
       S.propiosEnComision = S.propiosEnComision.filter(x => x !== pc);
       const pasos = [];
@@ -454,7 +454,7 @@ function finTrimestreLeg() {
       S.perdio = true; S.motivoDerrota = "Tu bloque te desconoció como presidente y eligió otro jefe. Terminás el mandato como " + camLeg().miembro + " raso, sin poder."; ev.push({ titulo: "Destituido como jefe de bloque", texto: S.motivoDerrota, tipo: "malo" }); return ev;
     }
   }
-  if (cierre && L.disciplina < 40 && R.rand() < (40 - L.disciplina) / 80) {
+  if (cierre && L.disciplina < 40 && R.rand() < (40 - L.disciplina) / 80 * (typeof factorJefatura === "function" ? factorJefatura() : 1)) {
     S.perdio = true; S.motivoDerrota = "Un sector del bloque te desafió en una reunión a puertas cerradas y ganó: eligen otro presidente de bloque. Seguís como " + camLeg().miembro + " raso."; ev.push({ titulo: "Te sacan la jefatura", texto: S.motivoDerrota, tipo: "malo" }); return ev;
   }
   if (cierre && L.imagen < 10) { S.perdio = true; S.motivoDerrota = "Tu imagen se desplomó y el partido te pide un paso al costado: renunciás a la presidencia del bloque."; ev.push({ titulo: "Renuncia", texto: S.motivoDerrota, tipo: "malo" }); return ev; }

@@ -258,7 +258,7 @@ function redactarLey(baseId, op = {}) {
 function puedePresentarLey() {
   const E = estadoLeyes();
   const ctx = ctxLey();
-  if (ctx.modo === "leg" && S.accionesLeg <= 0) return { ok: false, msg: "Ya usaste la acción de este mes." };
+  if (ctx.modo === "leg" && S.accionesLeg <= 0) return { ok: false, msg: "Ya usaste las acciones de este mes." };
   if (ctx.modo === "leg" && E.tram.filter(l => l.propia).length >= 3) return { ok: false, msg: "Tenés tres proyectos en trámite: las comisiones no te van a dar más lugar." };
   if (ctx.modo === "leg") return { ok: true };
   if (E.mes >= 1) return { ok: false, msg: `Ya enviaste un proyecto este mes. ${ctx.modo === "local" ? (ctx.cuerpo === "leg" ? "La Legislatura" : "El Concejo") : "El Congreso"} no trata más de uno tuyo por mes.` };
@@ -468,7 +468,7 @@ function tratarSobreTablas(uid) {
   const E = estadoLeyes(), ctx = ctxLey();
   const ley = E.tram.find(l => l.uid === uid);
   if (!ley) return { msg: "", pasos: [] };
-  if (ctx.modo === "leg") { if (S.accionesLeg <= 0) return { msg: "Ya usaste la acción de este mes.", tipo: "aviso", pasos: [] }; S.accionesLeg--; }
+  if (ctx.modo === "leg") { if (S.accionesLeg <= 0) return { msg: "Ya usaste las acciones de este mes.", tipo: "aviso", pasos: [] }; S.accionesLeg--; }
   else { if (E.mes >= 1) return { msg: "Ya usaste el turno legislativo de este mes.", tipo: "aviso", pasos: [] }; E.mes++; }
   const r = avanzarLey(ley, false, true);
   return { msg: `Pediste tratarlo sobre tablas, sin dictamen: hacen falta dos tercios. ${r.msg}`, pasos: r.pasos, tipo: r.tipo, decision: r.decision };

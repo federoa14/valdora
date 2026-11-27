@@ -87,6 +87,7 @@ El repositorio ya trae el flujo `.github/workflows/pages.yml`: cada vez que se s
 | `js/legislador.js` | Escala diputado y jefe de bloque: lista D'Hondt, votaciones en el recinto, disciplina, interna del bloque, proyectos propios, interpelación y juicio político |
 | `js/leyes_catalogo.js` | Catálogo de proyectos de ley nacionales, leyes provinciales y ordenanzas municipales |
 | `js/leyes.js` | Motor legislativo: voto de cada bloque, mayorías especiales, cámara de origen y revisora, comisiones, veto, insistencia, Corte y proyectos de la oposición |
+| `js/relaciones.js` | Gestiones del intendente ante la provincia y del gobernador ante la Nación (expedientes, condiciones, facturas y represalias) y peso político del legislador (rangos, comisiones, mesa de negociación por proyecto y promesas de voto) |
 | `js/agenda.js` | Agenda mensual limitada en todos los cargos |
 | `js/portal.js` | Boletín Oficial, estadísticas oficiales y ejecución presupuestaria |
 | `js/guardado.js` | Autoguardado, ranuras y exportar/importar |
@@ -102,6 +103,7 @@ El repositorio ya trae el flujo `.github/workflows/pages.yml`: cada vez que se s
 | `js/ui_local.js` | Interfaz del gobierno provincial y municipal |
 | `js/ui_territorios.js` | Selector de provincia o municipio con mapa de dificultad, ficha del territorio y votaciones bicamerales provinciales |
 | `js/ui_legislador.js` | Interfaz del diputado y jefe de bloque |
+| `js/ui_relaciones.js` | Pestañas de gestiones ante el superior y de peso y negociación en el Congreso |
 | `js/ui_leyes.js` | Pestaña Leyes: redactor, pronóstico de votación y seguimiento del trámite |
 | `tests/simular.js` | Prueba automática (`npm test`) |
 | `.github/workflows/pages.yml` | Publicación automática en GitHub Pages |
