@@ -251,3 +251,7 @@ table.ranuras td.acc button { padding: 5px 10px; font-size: .82rem; margin-left:
   .terr-barra { grid-template-columns: 96px 1fr 24px; }
 }
 .terr-hemis .hemiciclo { max-width: 300px; }
+
+/* v0.11: con el botón Trayectoria la barra superior no debe empujar los botones a otra fila */
+#estado { flex: 1 1 0; min-width: 0; justify-content: flex-end; }
+@media (max-width: 760px) { #estado { flex-basis: 100%; justify-content: flex-start; order: 3; } }

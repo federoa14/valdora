@@ -13,9 +13,15 @@ const fmt = (n, d = 1) => Number(n).toLocaleString("es-AR", { minimumFractionDig
 
 let S = null; // estado global de la partida
 
-const SEMANAS_CAMPANA = 12;
-const SEMANA_INTERNA = 4;
-const MESES_CAMPANA = SEMANAS_CAMPANA / 2; // cada turno de campaña es un mes (dos semanas del modelo)
+// calendario de campaña: puede arrancar con una precampaña de hasta 6 meses antes de la interna o las PASO
+let SEMANAS_CAMPANA = 12;
+let SEMANA_INTERNA = 4;
+let MESES_CAMPANA = SEMANAS_CAMPANA / 2; // cada turno de campaña es un mes (dos semanas del modelo)
+function fijarCalendario(mesesPre) {
+  const pre = Math.max(0, Math.min(6, Math.round(mesesPre || 0)));
+  SEMANA_INTERNA = 4 + pre * 2; SEMANAS_CAMPANA = 12 + pre * 2; MESES_CAMPANA = SEMANAS_CAMPANA / 2;
+  return pre;
+}
 const AP_MES = 6;
 function mesDeSemana(s) { return Math.ceil(s / 2); }
 const TRIMESTRES_MANDATO = 16;
@@ -401,7 +407,7 @@ function terminarSemana() {
   // Interna
   if (!S.internaResuelta && S.semana === SEMANA_INTERNA - 1 && S.tipoInterna !== "PASO") eventos.push(resolverInterna());
   if (S.semana === SEMANA_INTERNA) eventos.push(resolverPASO());
-  if (S.semana === 9) eventos.push(debate());
+  if (S.semana === SEMANAS_CAMPANA - 3) eventos.push(debate());
   S.semana++;
   if (S.perdio) return eventos;
   if (!S.balotaje && S.semana > SEMANAS_CAMPANA) { eventos.push(eleccionGeneral()); return eventos; }
